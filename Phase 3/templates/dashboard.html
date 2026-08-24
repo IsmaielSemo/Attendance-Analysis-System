@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Analysis System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Google Fonts for Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Inter', sans-serif;
+            color: #333333;
+            font-size: 0.9rem;
+        }
+
+        .modern-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            border-top: 3px solid #0d6efd;
+            text-align: center;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            transition: transform 0.2s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #212529;
+            margin: 0;
+        }
+
+        .nav-tabs {
+            border-bottom: 2px solid #e2e8f0;
+            background-color: #ffffff;
+            padding: 0 15px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            background-color: transparent;
+            color: #6c757d;
+            margin-right: 15px;
+            padding: 12px 10px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: color 0.2s;
+        }
+        .nav-tabs .nav-link:hover { color: #0d6efd; }
+        .nav-tabs .nav-link.active {
+            background-color: transparent;
+            color: #0d6efd;
+            border-bottom: 2px solid #0d6efd;
+            font-weight: 600;
+        }
+
+        .table-container {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            height: 480px;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.01);
+        }
+        .modern-table { width: 100%; border-collapse: collapse; }
+        .modern-table th {
+            background-color: #f8f9fa;
+            color: #495057;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85rem;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .modern-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f1f3f5;
+            color: #495057;
+            font-size: 0.85rem;
+        }
+        .modern-table tr:hover { background-color: #f8f9fa; }
+
+        /* Status/Priority Color Coding */
+        .bg-very-high   { background-color: #fecaca !important; color: #7f1d1d; font-weight: 500; }
+        .bg-high        { background-color: #fed7aa !important; color: #7c2d12; font-weight: 500; }
+        .bg-medium      { background-color: #fef08a !important; color: #713f12; font-weight: 500; }
+        .bg-low         { background-color: #dcfce7 !important; color: #14532d; font-weight: 500; }
+        .bg-warning-row { background-color: #fee2e2 !important; }
+
+        /* Review priority row colors for Attendance Insights tab */
+        .priority-soon     { background-color: #fed7aa !important; color: #7c2d12; }
+        .priority-when-pos { background-color: #fef08a !important; color: #713f12; }
+        .priority-monitor  { background-color: #e0f2fe !important; color: #075985; }
+
+        .hover-dropdown:hover .dropdown-menu {
+            display: block;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Dynamic Flash Messages (Updated to support success/danger colors) -->
+    <div class="container-fluid mt-3 px-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    {% set alert_type = 'warning' %}
+                    {% if category == 'success' %} {% set alert_type = 'success' %} {% endif %}
+                    {% if category == 'danger' or category == 'error' %} {% set alert_type = 'danger' %} {% endif %}
+
+                    <div class="alert alert-{{ alert_type }} py-2 mb-2 small shadow-sm border-0">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="container-fluid py-2 px-4">
+
+        <!-- HEADER -->
+        <div class="d-flex align-items-center bg-white p-3 modern-card">
+            <img src="{{ url_for('static', filename='logo.png') }}"
+                 alt="SUD Logo"
+                 style="height: 80px; margin-right: 25px;"
+                 onerror="this.style.display='none'">
+            <div>
+                <h3 class="mb-0 fw-bold text-dark">Attendance Analysis System</h3>
+                <p class="text-muted small mb-0">Safwa Urban Development (SUD)</p>
+            </div>
+            <div class="ms-auto d-flex align-items-center">
+                <div class="dropdown hover-dropdown">
+                    <button class="btn btn-light dropdown-toggle border-0 shadow-none d-flex align-items-center gap-2"
+                            type="button"
+                            id="userMenuDropdown"
+                            aria-expanded="false">
+                        <span class="text-secondary small">
+                            User: <strong class="text-dark">{{ username }}</strong>
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0"
+                        aria-labelledby="userMenuDropdown">
+
+                        <!-- DYNAMIC DROPDOWN TEXT FOR ADMIN VS SUPERADMIN -->
+                        {% if user_role in ['Admin', 'SuperAdmin'] %}
+                        <li>
+                            <a class="dropdown-item small text-primary fw-bold"
+                               href="{{ url_for('admin_dashboard') }}">
+                                {% if user_role == 'SuperAdmin' %}
+                                    ⚙️ SuperAdmin Panel
+                                {% else %}
+                                    ⚙️ Admin Panel
+                                {% endif %}
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <li>
+                            <a class="dropdown-item small"
+                               href="{{ url_for('changepassword') }}">Change Password</a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item small text-danger fw-bold"
+                               href="{{ url_for('logout') }}">Log Out</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEARCH CONTROL FRAME -->
+        <div class="modern-card p-3">
+            <div class="text-uppercase small fw-bold text-muted mb-2">Search Filters</div>
+            <form method="POST"
+                  action="{{ url_for('dashboard') }}"
+                  class="row g-2 align-items-center">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                <div class="col-auto">
+                    <label class="form-label small fw-semibold mb-1">Badge ID</label>
+                    <select name="badge_id" class="form-select form-select-sm">
+                        <option value="All" {% if selected_badge == 'All' %}selected{% endif %}>All Badges</option>
+                        {% for badge in badges %}
+                            <option value="{{ badge }}"
+                                {% if badge|string == selected_badge|string %}selected{% endif %}>
+                                {{ badge }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <label class="form-label small fw-semibold mb-1">Start Date</label>
+                    <input type="text" name="start_date"
+                           class="form-control form-control-sm custom-calendar"
+                           placeholder="mm/dd/yyyy"
+                           style="width: 120px;"
+                           value="{{ start_date }}" required>
+                </div>
+
+                <div class="col-auto">
+                    <label class="form-label small fw-semibold mb-1">End Date</label>
+                    <input type="text" name="end_date"
+                           class="form-control form-control-sm custom-calendar"
+                           placeholder="mm/dd/yyyy"
+                           style="width: 120px;"
+                           value="{{ end_date }}" required>
+                </div>
+
+                <div class="col-auto d-flex align-end gap-2 pt-4">
+                    <button type="submit" name="action" value="search"
+                            class="btn btn-sm btn-dark px-3 fw-semibold">Search</button>
+                    <button type="submit" name="action" value="clear"
+                            class="btn btn-sm btn-light border px-2">Clear</button>
+                    <div class="vr mx-1"></div>
+                    <button type="submit" name="action" value="export_excel"
+                            class="btn btn-sm btn-outline-success">Export Excel</button>
+                    <button type="submit" name="action" value="export_pdf"
+                            class="btn btn-sm btn-outline-secondary">Export PDF</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- SUMMARY CARDS -->
+        <div class="row g-3 mb-4">
+            <div class="col"><div class="stat-card">
+                <div class="stat-title">Employees</div>
+                <div class="stat-value">{{ stats.Employees if stats and stats.Employees is defined else '-' }}</div>
+            </div></div>
+            <div class="col"><div class="stat-card">
+                <div class="stat-title">Working Days</div>
+                <div class="stat-value">{{ stats.WorkingDays if stats and stats.WorkingDays is defined else '-' }}</div>
+            </div></div>
+            <div class="col"><div class="stat-card">
+                <div class="stat-title">Total Punches</div>
+                <div class="stat-value">{{ stats.TotalPunches if stats and stats.TotalPunches is defined else '-' }}</div>
+            </div></div>
+            <div class="col"><div class="stat-card">
+                <div class="stat-title">Average Arrival</div>
+                <div class="stat-value">{{ stats.AverageArrival if stats and stats.AverageArrival is defined else '-' }}</div>
+            </div></div>
+            <div class="col"><div class="stat-card">
+                <div class="stat-title">Average Departure</div>
+                <div class="stat-value">{{ stats.AverageDeparture if stats and stats.AverageDeparture is defined else '-' }}</div>
+            </div></div>
+            <div class="col"><div class="stat-card">
+                <div class="stat-title">Avg Punches / Employee-Day</div>
+                <div class="stat-value">{{ stats.AveragePunchesPerDay if stats and stats.AveragePunchesPerDay is defined else '-' }}</div>
+            </div></div>
+        </div>
+
+        <!-- CHART -->
+        <div class="modern-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h6 class="text-uppercase small fw-bold text-muted m-0">
+                    Entry &amp; Exit Activity Trends
+                </h6>
+                <span class="badge bg-light text-secondary border">Live Analytics</span>
+            </div>
+            <div style="height: 220px; position: relative;">
+                <canvas id="attendanceChart"></canvas>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="mb-4">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#transactions">
+                        Transactions
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily">
+                        Daily Summary
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#overall">
+                        Overall Summary
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#statistics">
+                        Statistics
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#alerts">
+                        Alerts
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#ai">
+                        Attendance Insights
+                    </button>
+                </li>
+            </ul>
+
+            <div class="table-container">
+                <div class="tab-content h-100">
+
+                    <!-- TRANSACTIONS -->
+                    <div class="tab-pane fade show active h-100" id="transactions">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>BadgeID</th>
+                                    <th>Datetime</th>
+                                    <th>Status</th>
+                                    <th>Branch</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if transactions %}
+                                    {% for r in transactions %}
+                                    <tr class="{% if r.Status == 'IN' %}bg-low{% else %}bg-very-high{% endif %}">
+                                        <td class="fw-medium">{{ r.BadgeID }}</td>
+                                        <td>{{ r.Datetime }}</td>
+                                        <td>
+                                            <span class="badge {% if r.Status == 'IN' %}bg-success{% else %}bg-danger{% endif %}">
+                                                {{ r.Status }}
+                                            </span>
+                                        </td>
+                                        <td>{{ r.Branch }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-5">
+                                            No transaction records loaded. Run a search query.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- DAILY SUMMARY -->
+                    <div class="tab-pane fade h-100" id="daily">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>BadgeID</th>
+                                    <th>Date</th>
+                                    <th>First IN</th>
+                                    <th>Last OUT</th>
+                                    <th>Punches</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if daily_summary %}
+                                    {% for d in daily_summary %}
+                                    <tr>
+                                        <td class="fw-medium">{{ d.BadgeID }}</td>
+                                        <td>{{ d.Date }}</td>
+                                        <td>{{ d.FirstIn }}</td>
+                                        <td>{{ d.LastOut }}</td>
+                                        <td>{{ d.Punches }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-5">
+                                            No daily summary records found.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- OVERALL SUMMARY -->
+                    <div class="tab-pane fade h-100" id="overall">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>BadgeID</th>
+                                    <th>Working Days</th>
+                                    <th>Total Punches</th>
+                                    <th>First Entry</th>
+                                    <th>Last Exit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if summary %}
+                                    {% for s in summary %}
+                                    <tr>
+                                        <td class="fw-medium">{{ s.BadgeID }}</td>
+                                        <td>{{ s.WorkingDays }}</td>
+                                        <td>{{ s.TotalPunches }}</td>
+                                        <td>{{ s.FirstEntry }}</td>
+                                        <td>{{ s.LastExit }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-5">
+                                            No overall summary available.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- STATISTICS -->
+                    <div class="tab-pane fade h-100" id="statistics">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:50%;">Statistic</th>
+                                    <th style="width:50%;">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if statistics_data %}
+                                    {% for key, val in statistics_data.items() %}
+                                    <tr>
+                                        <td class="fw-medium text-secondary">{{ key }}</td>
+                                        <td class="fw-bold text-dark">{{ val }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted py-5">
+                                            No statistics metrics computed yet.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- ALERTS -->
+                    <div class="tab-pane fade h-100" id="alerts">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>BadgeID</th>
+                                    <th>Date</th>
+                                    <th>Datetime</th>
+                                    <th>Problem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if warnings %}
+                                    {% for w in warnings %}
+                                    <tr class="bg-warning-row">
+                                        <td class="fw-medium">{{ w.BadgeID }}</td>
+                                        <td>{{ w.Date }}</td>
+                                        <td>{{ w.Datetime }}</td>
+                                        <td class="text-danger fw-bold">{{ w.Problem }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-5">
+                                            No timeline anomalies or missed punches flagged.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- ATTENDANCE INSIGHTS TAB -->
+                    <div class="tab-pane fade h-100" id="ai">
+
+                        <!-- DISCLAIMER BANNER -->
+                        <div class="alert alert-warning border-0 rounded-0 mb-0 py-2 small">
+                            <strong>⚠️ Employee Review Required:</strong>
+                            These insights highlight attendance patterns that differ from an employee's peer group.
+                            They are statistical observations NOT conclusions.
+                            Every flagged employee should be contacted and heard before any action is taken.
+                            Patterns may reflect approved schedule changes, medical circumstances, or data entry errors.
+                        </div>
+
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:10%;">Badge ID</th>
+                                    <th style="width:18%;">Status</th>
+                                    <th style="width:18%;">Review Priority</th>
+                                    <th style="width:10%;">Pattern Strength</th>
+                                    <th style="width:44%;">Observations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if anomalies %}
+                                    {% for a in anomalies %}
+                                    <tr class="
+                                        {% if a.Risk == 'Follow Up Soon' %}priority-soon
+                                        {% elif a.Risk == 'Follow Up When Possible' %}priority-when-pos
+                                        {% elif a.Risk == 'Monitor' %}priority-monitor
+                                        {% endif %}">
+                                        <td class="fw-medium">{{ a.BadgeID }}</td>
+                                        <td>
+                                            <span class="badge
+                                                {% if a.Prediction == 'Flagged for Review' %}bg-warning text-dark
+                                                {% else %}bg-success
+                                                {% endif %}">
+                                                {{ a.Prediction }}
+                                            </span>
+                                        </td>
+                                        <td><span class="fw-bold">{{ a.Risk }}</span></td>
+                                        <td>{{ a.Score }}</td>
+                                        <td>{{ a.Reasons }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-5">
+                                            No attendance patterns flagged for review.
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap & Flatpickr -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            flatpickr(".custom-calendar", {
+                dateFormat: "m/d/Y"
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const ctx = document.getElementById('attendanceChart').getContext('2d');
+
+            const labels  = {{ chart_labels  | default(['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','00:00']) | tojson | safe }};
+            const dataIn  = {{ chart_data_in  | default([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) | tojson | safe }};
+            const dataOut = {{ chart_data_out | default([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) | tojson | safe }};
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Entry (IN)',
+                            data: dataIn,
+                            backgroundColor: 'rgba(25, 135, 84, 0.15)',
+                            borderColor: '#198754',
+                            borderWidth: 2,
+                            borderRadius: 4,
+                            hoverBackgroundColor: 'rgba(25, 135, 84, 0.3)'
+                        },
+                        {
+                            label: 'Exit (OUT)',
+                            data: dataOut,
+                            backgroundColor: 'rgba(220, 53, 69, 0.15)',
+                            borderColor: '#dc3545',
+                            borderWidth: 2,
+                            borderRadius: 4,
+                            hoverBackgroundColor: 'rgba(220, 53, 69, 0.3)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: { family: "'Inter', sans-serif", size: 12 }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f3f5' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
