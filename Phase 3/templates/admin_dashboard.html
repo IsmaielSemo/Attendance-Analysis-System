@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - Attendance Analysis</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            min-height: 100vh;
+            padding-top: 50px;
+            padding-bottom: 50px;
+        }
+        .admin-wrapper {
+            background: #ffffff;
+            border: 1px solid #a0a0a0;
+            box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.08);
+            border-radius: 4px;
+            padding: 30px;
+        }
+        .form-control, .form-select {
+            border-radius: 0;
+            border: 1px solid #ced4da;
+            font-size: 0.9rem;
+        }
+        .validation-error {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #dc3545;
+            margin-top: 4px;
+        }
+        .badge-superadmin { background-color: #6f42c1; color: white; } /* Purple for SuperAdmin */
+        .badge-admin { background-color: #212529; color: white; } /* Dark for Admin */
+    </style>
+</head>
+<body>
+
+<div class="container" style="max-width: 900px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <!-- DYNAMIC TITLE BASED ON ROLE -->
+            <h3 class="fw-bold text-dark mb-0">
+                    Administrator Tools
+            </h3>
+            <span class="text-muted small">Current Role: <strong>{{ session.get('role', 'Unknown') }}</strong></span>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary rounded-0 shadow-sm">← Back to Dashboard</a>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} rounded-0 py-2 small shadow-sm">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <!-- CREATE USER CARD -->
+        <div class="col-md-5 mb-4">
+            <div class="admin-wrapper h-100">
+                <h5 class="fw-bold mb-3 text-secondary">Create New User</h5>
+                <hr>
+                <form method="POST" action="{{ url_for('admin_dashboard') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="action" value="create_user"/>
+
+                    <!-- Username Field -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Username</label>
+                        <input type="text" name="new_username" class="form-control" required
+                               oninput="document.getElementById('createUserErr').innerText = '';"
+                               onblur="validateUsername(this, 'createUserErr')">
+                        <div id="createUserErr" class="validation-error"></div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Password</label>
+                        <input type="password" name="new_password" class="form-control" required
+                               oninput="document.getElementById('createPwdErr').innerText = '';"
+                               onblur="validatePassword(this, 'createPwdErr')">
+                        <div id="createPwdErr" class="validation-error"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Confirm Password</label>
+                        <input type="password" name="confirm_password" class="form-control" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold">Account Role</label>
+                        <select name="new_role" class="form-select" required>
+                            <option value="User" selected>Standard User</option>
+                            <!-- Only a SuperAdmin can create regular Admins. SuperAdmin option removed entirely to enforce single-SuperAdmin rule. -->
+                            {% if session['role'] == 'SuperAdmin' %}
+                                <option value="Admin">Administrator</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-secondary rounded-0 w-100">Create Account</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MANAGE USERS / RENAME / DELETE -->
+        <div class="col-md-7 mb-4">
+            <div class="admin-wrapper h-100">
+                <!-- SORTING CONTROLS HEADER -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-secondary">Active System Users</h5>
+                    <select class="form-select form-select-sm w-auto rounded-0 text-secondary fw-bold" onchange="window.location.href='?sort=' + this.value">
+                        <option value="id_asc" {% if current_sort == 'id_asc' %}selected{% endif %}>Sort: ID (Ascending)</option>
+                        <option value="id_desc" {% if current_sort == 'id_desc' %}selected{% endif %}>Sort: ID (Descending)</option>
+                        <option value="role_admin" {% if current_sort == 'role_admin' %}selected{% endif %}>Sort: Admins First</option>
+                        <option value="role_user" {% if current_sort == 'role_user' %}selected{% endif %}>Sort: Users First</option>
+                    </select>
+                </div>
+                <hr class="mt-0">
+
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table class="table table-sm table-hover align-middle mb-4">
+                        <thead class="table-light text-secondary small" style="position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user[0] }}</td>
+                                <td class="fw-bold">{{ user[1] }}</td>
+                                <td>
+                                    <span class="badge
+                                        {% if user[2] == 'SuperAdmin' %} badge-superadmin
+                                        {% elif user[2] == 'Admin' %} badge-admin
+                                        {% else %} bg-secondary {% endif %}">
+                                        {{ user[2] }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <!-- Delete Button Form with SuperAdmin Hierarchy Logic -->
+                                    <form method="POST" action="{{ url_for('admin_dashboard', sort=current_sort) }}" onsubmit="return confirm('Are you sure you want to permanently delete user {{ user[1] }}?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <input type="hidden" name="action" value="delete_user"/>
+                                        <input type="hidden" name="target_user_id" value="{{ user[0] }}"/>
+
+                                        <!-- Disable if it's their own account, or if a standard Admin is looking at a SuperAdmin/Admin row -->
+                                        {% set is_disabled = (user[0] == session['user_id']) or (session['role'] != 'SuperAdmin' and user[2] in ['Admin', 'SuperAdmin']) %}
+
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 rounded-0" {{ 'disabled' if is_disabled else '' }}>Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h6 class="fw-bold mt-4 mb-2 text-secondary">Change a Username</h6>
+                <form method="POST" action="{{ url_for('admin_dashboard', sort=current_sort) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="action" value="change_username"/>
+
+                    <div class="d-flex gap-2">
+                        <select name="old_username" class="form-select form-select-sm rounded-0 w-50" required>
+                            <option value="" disabled selected>Select user...</option>
+                            {% for user in users %}
+                                <!-- Hide SuperAdmin/Admin rows from the rename dropdown if the current user is only an Admin -->
+                                {% if session['role'] == 'SuperAdmin' or user[2] not in ['Admin', 'SuperAdmin'] %}
+                                    <option value="{{ user[1] }}">{{ user[1] }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+
+                        <!-- Change Username Input -->
+                        <div class="w-50">
+                            <input type="text" name="new_username" class="form-control form-control-sm rounded-0 w-100" placeholder="New username..." required
+                                   oninput="document.getElementById('changeUserErr').innerText = '';"
+                                   onblur="validateUsername(this, 'changeUserErr')">
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-secondary rounded-0">Rename</button>
+                    </div>
+                    <div id="changeUserErr" class="validation-error text-end pe-5 mt-1"></div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FRONTEND VALIDATION SCRIPTS -->
+<script>
+    function validateUsername(input, errorId) {
+        const val = input.value;
+        const errDiv = document.getElementById(errorId);
+
+        if (!val) return;
+
+        if (val.length < 2) { errDiv.innerText = "Must be at least 2 characters long."; return; }
+        if (/\s/.test(val)) { errDiv.innerText = "Cannot contain spaces."; return; }
+        if (!/^[A-Za-z]/.test(val)) { errDiv.innerText = "Must start with a letter."; return; }
+    }
+
+    function validatePassword(input, errorId) {
+        const val = input.value;
+        const errDiv = document.getElementById(errorId);
+
+        if (!val) return;
+
+        if (val.length < 4) { errDiv.innerText = "Must be at least 4 characters long."; return; }
+        if (/\s/.test(val)) { errDiv.innerText = "Cannot contain spaces."; return; }
+        if (!/^[A-Za-z]/.test(val)) { errDiv.innerText = "Must start with a letter."; return; }
+        if (!/[a-z]/.test(val)) { errDiv.innerText = "Needs at least 1 lowercase letter."; return; }
+        if (!/[A-Z]/.test(val)) { errDiv.innerText = "Needs at least 1 uppercase letter."; return; }
+        if (!/[0-9]/.test(val)) { errDiv.innerText = "Needs at least 1 number."; return; }
+    }
+</script>
+
+</body>
+</html>
