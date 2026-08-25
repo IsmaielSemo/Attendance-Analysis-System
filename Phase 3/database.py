@@ -13,7 +13,6 @@ def get_auth_connection():
     # Let's ask SQL Server what database it is actually connected to right now!
     cursor = conn.cursor()
     cursor.execute("SELECT DB_NAME()")
-    print("-> PYTHON IS CURRENTLY CONNECTED TO DATABASE:", cursor.fetchone()[0])
     return conn
 
 def get_attendance(badge_id, start_date, end_date):
