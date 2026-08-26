@@ -234,7 +234,7 @@ def export_pdf(transactions, daily, overall, statistics, alerts, ml_data=[], cha
                 r["BadgeID"], r["Prediction"], r["Risk"], str(r["Score"]), reasons
             ])
         draw_table(
-            pdf, "AI Anomaly Detection",
+            pdf, "Attendance Insights",
             ["Badge ID", "Prediction", "Risk", "Score", "Reasons (Truncated)"],
             ml_table_data, [25, 30, 25, 25, 171], align='MIXED'
         )
