@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from flask_wtf.csrf import CSRFProtect, CSRFError
-from werkzeug.security import generate_password_hash, check_password_hash
+
 
 # --- YOUR BUSINESS & DATABASE LOGIC ---
 from attendance import (
@@ -123,7 +123,7 @@ def login():
         conn.close()
 
         # Verify user exists, EXACT capitalization matches, AND password matches
-        if user and user[1] == username and check_password_hash(user[2], password_attempt):
+        if user and user[1] == username and user[2] == password_attempt:
             session['user_id'] = user[0]
             session['user'] = user[1]  # Save the exact casing into the session
             session['role'] = str(user[3]).strip()
@@ -174,22 +174,29 @@ def changepassword():
             conn.close()
             return redirect(url_for('changepassword'))
 
-        if check_password_hash(user[1], new_password):
+        if user[1] == new_password:
             flash("New password cannot be the same as the old password.", "danger")
             conn.close()
             return redirect(url_for('changepassword'))
 
-        hashed_pw = generate_password_hash(new_password)
+
         cursor.execute(
             "UPDATE users SET password_hash = ? WHERE username = ?",
-            (hashed_pw, username)
+            (new_password, username)
         )
         conn.commit()
         conn.close()
 
-        flash("Password updated successfully! Please log in with your new password.", "success")
         log_to_database(username, "CHANGE_PASSWORD", "User securely updated their password.")
-        session.clear()  # Force them to log in again with new credentials
+
+        # 1. Clear the session FIRST so we don't accidentally erase the message
+        session.clear()
+
+        # 2. THEN create the flash message so it survives the redirect
+        flash("PASSWORD UPDATED: Your password has been successfully changed. Please log in.", "success")
+
+        # 3. Send them to the login screen
+        return redirect(url_for('login'))
         return redirect(url_for('login'))
 
     return render_template('changepassword.html')
@@ -237,8 +244,8 @@ def admin_dashboard():
                 flash("All fields are required to create a user.", "danger")
             elif new_password != confirm_password:
                 flash("The passwords do not match. Please try again.", "danger")
-            elif new_role in ["Admin", "SuperAdmin"] and current_user_role != "SuperAdmin":
-                flash("Security Alert: Only SuperAdmins can create other Admin accounts.", "danger")
+            elif new_role in ["SuperAdmin"] and current_user_role != "SuperAdmin":
+                flash("Security Alert: Only SuperAdmins can create other SuperAdmin accounts.", "danger")
             else:
                 # ENFORCE VALIDATION RULES
                 is_valid_user, user_error_msg = validate_username(new_username)
@@ -264,10 +271,9 @@ def admin_dashboard():
                         if cursor.fetchone():
                             flash("That username already exists. Choose another.", "warning")
                         else:
-                            hashed_pw = generate_password_hash(new_password)
                             cursor.execute(
                                 "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-                                (new_username, hashed_pw, new_role)
+                                (new_username, new_password, new_role)
                             )
                             conn.commit()
                             log_to_database(session["user"], "ADMIN_CREATE_USER",
@@ -323,8 +329,8 @@ def admin_dashboard():
                     target_role = user_to_delete[1]
 
                     # Prevent standard Admins from deleting higher roles
-                    if target_role in ["Admin", "SuperAdmin"] and current_user_role != "SuperAdmin":
-                        flash("Security Alert: You do not have permission to delete Administrative accounts.", "danger")
+                    if target_role in ["SuperAdmin"] and current_user_role != "SuperAdmin":
+                        flash("Security Alert: You do not have permission to delete SuperAdmin accounts.", "danger")
                         log_to_database(session["user"], "FAILED_DELETE_ATTEMPT",
                                         f"Standard Admin tried to delete higher role: {deleted_username}")
                     else:
