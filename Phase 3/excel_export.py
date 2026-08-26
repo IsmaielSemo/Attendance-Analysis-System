@@ -899,7 +899,7 @@ def export_excel(
     if ml_data:
 
         ws = workbook.create_sheet(
-            "AI Anomalies"
+            "Attendance Insights"
         )
 
         for _ in range(4):
@@ -915,7 +915,7 @@ def export_excel(
 
         create_report_header(
             ws,
-            "AI Anomaly Detection",
+            "Attendance Insights",
             statistics,
             alerts,
             table_cols_count=5
