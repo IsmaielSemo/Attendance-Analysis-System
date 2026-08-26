@@ -97,7 +97,7 @@
                         <select name="new_role" class="form-select" required>
                             <option value="User" selected>Standard User</option>
                             <!-- Only a SuperAdmin can create regular Admins. SuperAdmin option removed entirely to enforce single-SuperAdmin rule. -->
-                            {% if session['role'] == 'SuperAdmin' %}
+                            {% if session['role'] in ['Admin', 'SuperAdmin'] %}
                                 <option value="Admin">Administrator</option>
                             {% endif %}
                         </select>
@@ -152,8 +152,8 @@
                                         <input type="hidden" name="action" value="delete_user"/>
                                         <input type="hidden" name="target_user_id" value="{{ user[0] }}"/>
 
-                                        <!-- Disable if it's their own account, or if a standard Admin is looking at a SuperAdmin/Admin row -->
-                                        {% set is_disabled = (user[0] == session['user_id']) or (session['role'] != 'SuperAdmin' and user[2] in ['Admin', 'SuperAdmin']) %}
+                                        <!-- Disable if it's their own account, or if a standard Admin is looking at a SuperAdmin row -->
+                                        {% set is_disabled = (user[0] == session['user_id']) or (session['role'] != 'SuperAdmin' and user[2] == 'SuperAdmin') %}
 
                                         <button type="submit" class="btn btn-sm btn-outline-danger py-0 rounded-0" {{ 'disabled' if is_disabled else '' }}>Delete</button>
                                     </form>
