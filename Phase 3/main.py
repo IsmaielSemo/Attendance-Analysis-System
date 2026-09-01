@@ -21,6 +21,7 @@ from ml import top_anomalies
 from excel_export import export_excel
 from pdf_export import export_pdf
 import database as db
+import upload_excel
 
 app = Flask(__name__)
 
@@ -414,6 +415,30 @@ def dashboard():
             log_to_database(session["user"], "CLEAR_FILTERS", "Reset search dashboard parameters.")
             return redirect(url_for("dashboard"))
 
+        elif action == "upload_excel":
+            uploaded_file = request.files.get("excel_file")
+
+            if uploaded_file and uploaded_file.filename:
+                # 1. Save the actual uploaded file temporarily
+                temp_path = os.path.join(app.root_path, uploaded_file.filename)
+                uploaded_file.save(temp_path)
+
+                try:
+                    # 2. Process it exactly as before
+                    upload_excel.excel_to_db(temp_path)
+                    log_to_database(session["user"], "UPLOAD_EXCEL",
+                                    f"Uploaded manual entry file: {uploaded_file.filename}")
+                    flash(f"Successfully uploaded {uploaded_file.filename}!", "success")
+                except Exception as e:
+                    flash(f"Upload failed: {str(e)}", "danger")
+                finally:
+                    # 3. Clean up the temp file so the server stays clean
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+            else:
+                flash("No file selected.", "danger")
+            return redirect(url_for("dashboard"))
+
         selected_badge = request.form.get("badge_id")
         start_date_str = request.form.get("start_date")
         end_date_str = request.form.get("end_date")
@@ -511,6 +536,8 @@ def dashboard():
                     return send_file(filename, as_attachment=True)
                 except Exception as e:
                     flash(f"PDF Export Failed: {str(e)}")
+
+
 
     return render_template(
         "dashboard.html",
