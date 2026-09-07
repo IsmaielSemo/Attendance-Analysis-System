@@ -1,0 +1,118 @@
+[2026-08-05 14:14:53] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-05 14:24:31] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-05 14:24:41] USER: admin | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-05 14:25:06] USER: admin | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 05/11/2026 and 07/14/2026
+[2026-08-05 14:26:45] USER: admin | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260805_142628.xlsx
+[2026-08-05 14:36:01] USER: admin | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 05/11/2026 and 07/14/2026
+[2026-08-05 14:36:15] USER: admin | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 05/11/2026 and 07/14/2026
+[2026-08-05 14:36:51] USER: admin | ACTION: SEARCH | DETAILS: Queried attendance for Badge: 100 between 05/11/2026 and 07/14/2026
+[2026-08-06 09:22:02] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-06 11:02:17] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-06 11:16:12] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-06 11:16:18] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-06 11:25:03] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-06 11:25:09] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-06 11:25:50] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 07/12/2026 and 08/06/2026
+[2026-08-06 11:26:11] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 07/12/2026 and 07/20/2026
+[2026-08-06 11:26:19] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 07/12/2026 and 07/24/2026
+[2026-08-06 11:44:31] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-06 11:44:46] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/09/2026 and 08/06/2026
+[2026-08-06 12:28:41] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-06 12:30:09] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/07/2026 and 08/06/2026
+[2026-08-06 12:32:31] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: 100 between 06/07/2026 and 08/06/2026
+[2026-08-06 12:37:10] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: 100 between 06/07/2026 and 08/06/2026
+[2026-08-06 12:38:38] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/07/2026 and 08/06/2026
+[2026-08-06 12:41:08] USER: ismaiel | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260806_124055.xlsx
+[2026-08-06 13:16:25] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-06 13:16:42] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/08/2026 and 08/06/2026
+[2026-08-06 13:18:17] USER: ismaiel | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260806_131746.xlsx
+[2026-08-06 13:19:37] USER: ismaiel | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260806_131923.xlsx
+[2026-08-06 13:25:11] USER: ismaiel | ACTION: EXPORT_PDF | DETAILS: Exported dataset to PDF: reports\Attendance_Report_20260806_132509.pdf
+[2026-08-06 13:28:08] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/09/2026 and 08/06/2026
+[2026-08-06 13:29:15] USER: ismaiel | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260806_132902.xlsx
+[2026-08-06 13:32:25] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/09/2026 and 08/06/2026
+[2026-08-06 13:32:40] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-06 13:32:49] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-06 13:32:57] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/15/2026 and 08/06/2026
+[2026-08-06 13:33:56] USER: ismaiel | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260806_133344.xlsx
+[2026-08-06 13:35:45] USER: ismaiel | ACTION: EXPORT_PDF | DETAILS: Exported dataset to PDF: reports\Attendance_Report_20260806_133545.pdf
+[2026-08-06 13:42:47] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 10:34:06] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 10:34:26] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/08/2026 and 08/11/2026
+[2026-08-11 10:49:02] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/08/2026 and 08/11/2026
+[2026-08-11 10:49:26] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 10:49:33] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 10:49:47] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 02/09/2026 and 08/11/2026
+[2026-08-11 10:56:45] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 02/09/2026 and 08/11/2026
+[2026-08-11 10:57:18] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 10:57:25] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 10:57:40] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/21/2026 and 08/11/2026
+[2026-08-11 11:19:50] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 11:20:06] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 02/24/2026 and 08/11/2026
+[2026-08-11 11:22:06] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 05/07/2026 and 08/11/2026
+[2026-08-11 11:29:52] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 11:30:00] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 11:30:18] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 02/09/2026 and 08/11/2026
+[2026-08-11 11:35:54] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 11:36:02] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 11:36:17] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 12:00:02] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 12:00:18] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 12:16:38] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 12:16:55] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 12:24:42] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 12:24:47] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 12:25:02] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 12:37:12] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 12:37:21] USER: admin | ACTION: FAILED_LOGIN | DETAILS: Invalid credentials provided.
+[2026-08-11 12:37:32] USER: admin | ACTION: FAILED_LOGIN | DETAILS: Invalid credentials provided.
+[2026-08-11 12:37:38] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 12:38:06] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 12:56:38] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 12:57:02] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 13:07:23] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 13:07:30] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 13:07:52] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 13:13:29] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 13:13:38] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 13:14:04] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 13:40:56] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 13:41:15] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 13:56:23] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 01/13/2026 and 08/11/2026
+[2026-08-11 14:08:50] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-11 14:08:57] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-11 14:11:46] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/17/2026 and 08/11/2026
+[2026-08-11 14:12:27] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: 100 between 06/17/2026 and 08/11/2026
+[2026-08-12 09:38:44] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-12 09:39:18] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 12/16/2025 and 03/19/2026
+[2026-08-12 09:59:52] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-12 10:00:05] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 04/28/2026 and 08/12/2026
+[2026-08-12 10:00:50] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: 105 between 04/28/2026 and 08/12/2026
+[2026-08-12 10:01:55] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 04/28/2026 and 08/12/2026
+[2026-08-12 10:13:28] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 04/28/2026 and 04/30/2026
+[2026-08-12 10:14:20] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 04/28/2026 and 05/20/2026
+[2026-08-12 10:16:35] USER: ismaiel | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260812_101629.xlsx
+[2026-08-12 10:17:06] USER: ismaiel | ACTION: EXPORT_PDF | DETAILS: Exported dataset to PDF: reports\Attendance_Report_20260812_101705.pdf
+[2026-08-12 10:22:40] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-12 10:22:47] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-12 10:23:04] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 04/21/2026 and 05/29/2026
+[2026-08-12 10:25:35] USER: ismaiel | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260812_102525.xlsx
+[2026-08-12 10:38:10] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-12 10:38:17] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-12 10:38:29] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/14/2026 and 08/12/2026
+[2026-08-12 10:43:17] USER: ismaiel | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260812_104304.xlsx
+[2026-08-12 11:29:51] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-12 11:30:06] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 04/14/2026 and 08/12/2026
+[2026-08-12 11:41:53] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-12 11:41:59] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-12 11:42:25] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/08/2026 and 08/12/2026
+[2026-08-12 11:48:20] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-12 11:48:28] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-12 11:48:53] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 03/02/2026 and 08/12/2026
+[2026-08-12 11:51:34] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-12 12:37:01] USER: admin | ACTION: FAILED_LOGIN | DETAILS: Invalid credentials provided.
+[2026-08-12 12:37:29] USER: admin | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-12 12:39:09] USER: admin | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 02/10/2026 and 07/23/2026
+[2026-08-12 12:51:31] USER: admin | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260812_125041.xlsx
+[2026-08-12 12:54:14] USER: admin | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260812_125327.xlsx
+[2026-08-12 13:03:21] USER: admin | ACTION: EXPORT_PDF | DETAILS: Exported dataset to PDF: reports\Attendance_Report_20260812_130316.pdf
