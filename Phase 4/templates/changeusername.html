@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>Change Username - Attendance Analysis System</title>
+   <!-- Bootstrap 5 CSS -->
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+   <style>
+       body {
+           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+           font-family: "Segoe UI", Tahoma, sans-serif;
+           height: 100vh;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           margin: 0;
+           font-size: 9pt;
+       }
+       .login-wrapper {
+           background: #ffffff;
+           border: 1px solid #a0a0a0;
+           box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.08);
+           width: 850px;
+           max-width: 95%;
+           display: flex;
+           border-radius: 4px;
+           overflow: hidden;
+       }
+       .brand-section {
+           background: #e9ecef;
+           border-right: 1px solid #d0d0d0;
+           flex: 1;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           justify-content: center;
+           padding: 40px;
+           text-align: center;
+       }
+       .form-section {
+           flex: 1;
+           padding: 40px;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+       }
+       .form-control {
+           border-radius: 0;
+           border: 1px solid #ced4da;
+           padding: 10px;
+           font-family: "Segoe UI", Tahoma, sans-serif;
+       }
+       .form-control:focus {
+           box-shadow: none;
+           border-color: #6c757d;
+       }
+   </style>
+</head>
+<body>
+
+   <div class="login-wrapper">
+       <!-- Brand / Logo Section -->
+       <div class="brand-section">
+           <img src="{{ url_for('static', filename='logo.png') }}" alt="SUD Logo" style="max-height: 90px; margin-bottom: 20px;" onerror="this.style.display='none'">
+           <h4 class="fw-bold text-dark mb-2" style="font-family: Arial, sans-serif;">Attendance Analysis System</h4>
+           <p class="text-muted small mb-0">Safwa Urban Development (SUD)</p>
+       </div>
+
+       <!-- Change Username Form Section -->
+       <div class="form-section">
+           <h4 class="fw-bold mb-4 text-secondary" style="font-family: 'Segoe UI', Tahoma, sans-serif;">Change Username</h4>
+
+           {% with messages = get_flashed_messages(with_categories=true) %}
+               {% if messages %}
+                   {% for category, message in messages %}
+                       <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} py-2 text-center small rounded-0">{{ message }}</div>
+                   {% endfor %}
+               {% endif %}
+           {% endwith %}
+
+           <form method="POST" action="{{ url_for('changeusername') }}">
+               <!-- Required CSRF Token to prevent Bad Request errors -->
+               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+               <div class="mb-3">
+                   <label class="form-label small fw-bold text-secondary">New Username</label>
+                   <input type="text" name="new_user" class="form-control" required autofocus>
+               </div>
+               <button type="submit" class="btn btn-secondary rounded-0 w-100 mt-2 py-2">Update Username</button>
+               <div class="text-center mt-3">
+                   <a href="{{ url_for('dashboard') }}" class="text-secondary small text-decoration-none">← Back to Dashboard</a>
+               </div>
+           </form>
+       </div>
+   </div>
+
+</body>
+</html>
