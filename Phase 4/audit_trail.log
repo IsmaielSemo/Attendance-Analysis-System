@@ -1,0 +1,63 @@
+[2026-08-12 13:19:27] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-12 13:19:38] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/09/2026 and 08/12/2026
+[2026-08-12 13:20:29] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: 101 between 06/09/2026 and 08/12/2026
+[2026-08-12 13:21:17] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: 1303 between 06/09/2026 and 08/12/2026
+[2026-08-13 10:56:50] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-13 10:57:05] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 06/07/2026 and 08/13/2026
+[2026-08-13 11:02:50] USER: admin | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-13 11:03:17] USER: admin | ACTION: SEARCH | DETAILS: Queried attendance for Badge: 1112 between 06/01/2026 and 06/30/2026
+[2026-08-13 11:03:44] USER: admin | ACTION: EXPORT_EXCEL | DETAILS: Exported dataset to Excel: reports\Attendance_Report_20260813_110344.xlsx
+[2026-08-13 12:24:54] USER: admin | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-13 12:25:00] USER: admin | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-13 12:25:05] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-13 12:29:02] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-13 12:29:23] USER: ismaiel | ACTION: LOGIN | DETAILS: User successfully authenticated.
+[2026-08-13 12:42:15] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-13 13:13:42] USER: ismaiel | ACTION: FAILED_LOGIN | DETAILS: Invalid password attempt.
+[2026-08-13 13:14:17] USER: admin | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-13 13:29:35] USER: ismaiel | ACTION: FAILED_LOGIN | DETAILS: Invalid password attempt.
+[2026-08-13 13:29:44] USER: admin | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-13 13:34:43] USER: admin | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-13 13:34:57] USER: ismaiel | ACTION: REGISTER | DETAILS: New user account created.
+[2026-08-13 13:35:03] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-13 13:36:11] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-13 13:36:55] USER: aug13 | ACTION: REGISTER | DETAILS: New user account created.
+[2026-08-13 13:37:02] USER: aug13 | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-13 13:37:04] USER: aug13 | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-13 13:40:43] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-13 13:40:53] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 05/05/2026 and 08/13/2026
+[2026-08-18 11:05:19] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 11:42:59] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 11:44:05] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 11:44:28] USER: ismaiel | ACTION: FAILED_LOGIN | DETAILS: Invalid password attempt.
+[2026-08-18 11:44:34] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 11:52:41] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:14:28] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:14:38] USER: ismaiel | ACTION: CHANGE_PASSWORD | DETAILS: User securely updated their password.
+[2026-08-18 12:14:49] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:16:05] USER: ismaiel | ACTION: FAILED_LOGIN | DETAILS: Invalid password attempt.
+[2026-08-18 12:16:12] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:17:25] USER: ismaiel | ACTION: CHANGE_PASSWORD | DETAILS: User securely updated their password.
+[2026-08-18 12:17:37] USER: ismaiel | ACTION: FAILED_LOGIN | DETAILS: Invalid password attempt.
+[2026-08-18 12:17:47] USER: ismaiel | ACTION: FAILED_LOGIN | DETAILS: Invalid password attempt.
+[2026-08-18 12:17:53] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:18:05] USER: ismaiel | ACTION: CHANGE_PASSWORD | DETAILS: User securely updated their password.
+[2026-08-18 12:18:23] USER: test18 | ACTION: REGISTER | DETAILS: New user account created.
+[2026-08-18 12:18:31] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:18:39] USER: ismaiel | ACTION: CHANGE_PASSWORD | DETAILS: User securely updated their password.
+[2026-08-18 12:19:24] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:19:39] USER: ismaiel | ACTION: CHANGE_PASSWORD | DETAILS: User securely updated their password.
+[2026-08-18 12:24:56] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:25:17] USER: ismaiel | ACTION: SEARCH | DETAILS: Queried attendance for Badge: All between 05/04/2026 and 08/18/2026
+[2026-08-18 12:26:53] USER: ismaiel | ACTION: CHANGE_PASSWORD | DETAILS: User securely updated their password.
+[2026-08-18 12:26:59] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:27:06] USER: ismaiel | ACTION: CHANGE_PASSWORD | DETAILS: User securely updated their password.
+[2026-08-18 12:41:58] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:55:14] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-18 12:55:22] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:57:27] USER: ismaiel | ACTION: LOGOUT | DETAILS: User safely terminated session.
+[2026-08-18 12:57:33] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 12:59:34] USER: ismaiel | ACTION: CHANGE_USERNAME | DETAILS: User securely updated their username to Is.
+[2026-08-18 12:59:40] USER: Is | ACTION: LOGIN | DETAILS: User authenticated via database.
+[2026-08-18 13:00:33] USER: Is | ACTION: CHANGE_USERNAME | DETAILS: User securely updated their username to ismaiel.
+[2026-08-18 13:00:38] USER: ismaiel | ACTION: LOGIN | DETAILS: User authenticated via database.
