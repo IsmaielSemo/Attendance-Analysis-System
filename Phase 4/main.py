@@ -22,6 +22,7 @@ from excel_export import export_excel
 from pdf_export import export_pdf
 import database as db
 import upload_excel
+import push_data  # Added push_data import
 
 app = Flask(__name__)
 
@@ -365,6 +366,18 @@ def dashboard():
                         os.remove(temp_path)
             else:
                 flash("No file selected.", "danger")
+            return redirect(url_for("dashboard"))
+
+        elif action == "push_data":
+            try:
+                records_added = push_data.write_to_transaction()
+                if records_added is not None and records_added > 0:
+                    log_to_database(session["user"], "PUSH_DATA", f"Pushed {records_added} manual entries to transaction_log.")
+                    flash(f"Push complete! {records_added} new unique entries were safely added to the transaction log.", "success")
+                else:
+                    flash("Push complete. No new unique manual entries were found.", "success")
+            except Exception as e:
+                flash(f"Push Data Failed: {str(e)}", "danger")
             return redirect(url_for("dashboard"))
 
         selected_badge = request.form.get("badge_id")

@@ -3,15 +3,7 @@ import pyodbc
 from datetime import datetime
 from config import ATTENDANCE_CONNECTION_STRING
 
-#excel1 = "/manual template/Pearl-In"
-#excel2 = "/manual template/PearlOut.xlsx"
 
-# Fix: Changed PearlIn to Pearl-In and added .xlsx
-#excel1 = r"C:\Users\Administrator\Documents\Work Phase 3\manual template\Pearl-In.xlsx"
-#excel2 = r"C:\Users\Administrator\Documents\Work Phase 3\manual template\Pearl-Out.xlsx"
-
-# Notice the space after In and before .xlsx
-excel = r"C:\Users\Administrator\Documents\Work Phase 3\manual template\Pearl-In .xlsx"
 
 
 # Excel has Number, Datetime, LocationID, VerifyCode, InOut, Branch
@@ -64,9 +56,4 @@ def write_to_db(records):
     cursor.close()
     conn.close()
 
-def main():
-    excel_to_db(excel)
-
-if __name__ == "__main__":
-    main()
 
