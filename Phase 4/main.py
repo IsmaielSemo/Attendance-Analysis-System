@@ -22,7 +22,7 @@ from excel_export import export_excel
 from pdf_export import export_pdf
 import database as db
 import upload_excel
-import push_data  # Added push_data import
+import push_data
 
 app = Flask(__name__)
 
@@ -182,9 +182,9 @@ def logout():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_dashboard():
-    current_user_role = str(session.get("role")).strip()
+    current_user_role = str(session.get("role", "")).strip()
 
-    if "user" not in session or current_user_role not in ["Admin", "SuperAdmin"]:
+    if "user" not in session or current_user_role.lower() not in ["admin", "superadmin"]:
         flash("Access Denied. You do not have administrator privileges.", "danger")
         return redirect(url_for("dashboard"))
 
@@ -205,7 +205,7 @@ def admin_dashboard():
                 flash("All fields are required to create a user.", "danger")
             elif new_password != confirm_password:
                 flash("The passwords do not match. Please try again.", "danger")
-            elif new_role in ["SuperAdmin"] and current_user_role != "SuperAdmin":
+            elif new_role.lower() in ["superadmin"] and current_user_role.lower() != "superadmin":
                 flash("Security Alert: Only SuperAdmins can create other SuperAdmin accounts.", "danger")
             else:
                 is_valid_user, user_error_msg = validate_username(new_username)
@@ -217,8 +217,8 @@ def admin_dashboard():
                     flash(pwd_error_msg, "danger")
                 else:
                     can_create_user = True
-                    if new_role == "SuperAdmin":
-                        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'SuperAdmin'")
+                    if new_role.lower() == "superadmin":
+                        cursor.execute("SELECT COUNT(*) FROM users WHERE LOWER(role) = 'superadmin'")
                         if cursor.fetchone()[0] >= 1:
                             flash("System Policy: Only one SuperAdmin account can exist in the database.", "danger")
                             can_create_user = False
@@ -249,7 +249,8 @@ def admin_dashboard():
                 cursor.execute("SELECT role FROM users WHERE username = ?", (old_username,))
                 target = cursor.fetchone()
 
-                if target and target[0] in ["Admin", "SuperAdmin"] and current_user_role != "SuperAdmin":
+                if target and target[0].lower() in ["admin",
+                                                    "superadmin"] and current_user_role.lower() != "superadmin":
                     flash("Security Alert: You do not have permission to rename Administrative accounts.", "danger")
                 else:
                     is_valid_user, user_error_msg = validate_username(new_username)
@@ -282,10 +283,14 @@ def admin_dashboard():
                     deleted_username = user_to_delete[0]
                     target_role = user_to_delete[1]
 
-                    if target_role in ["SuperAdmin"] and current_user_role != "SuperAdmin":
+                    if target_role.lower() == "superadmin" and current_user_role.lower() != "superadmin":
                         flash("Security Alert: You do not have permission to delete SuperAdmin accounts.", "danger")
                         log_to_database(session["user"], "FAILED_DELETE_ATTEMPT",
                                         f"Standard Admin tried to delete higher role: {deleted_username}")
+                    elif target_role.lower() == "admin" and current_user_role.lower() != "superadmin":
+                        flash("Security Alert: You do not have permission to delete other Admin accounts.", "danger")
+                        log_to_database(session["user"], "FAILED_DELETE_ATTEMPT",
+                                        f"Standard Admin tried to delete peer role: {deleted_username}")
                     else:
                         cursor.execute("DELETE FROM users WHERE user_id = ?", (target_user_id,))
                         conn.commit()
@@ -301,8 +306,10 @@ def admin_dashboard():
         order_query = "ORDER BY user_id DESC"
     elif current_sort == 'role_admin':
         order_query = "ORDER BY CASE role WHEN 'SuperAdmin' THEN 1 WHEN 'Admin' THEN 2 ELSE 3 END ASC, user_id ASC"
+    elif current_sort == 'role_hr':
+        order_query = "ORDER BY CASE role WHEN 'HR' THEN 1 WHEN 'SuperAdmin' THEN 2 WHEN 'Admin' THEN 3 ELSE 4 END ASC, user_id ASC"
     elif current_sort == 'role_user':
-        order_query = "ORDER BY CASE role WHEN 'User' THEN 1 WHEN 'Admin' THEN 2 ELSE 3 END ASC, user_id ASC"
+        order_query = "ORDER BY CASE role WHEN 'Normal' THEN 1 WHEN 'User' THEN 1 WHEN 'Admin' THEN 2 ELSE 3 END ASC, user_id ASC"
     else:
         order_query = "ORDER BY user_id ASC"
 
@@ -317,6 +324,11 @@ def admin_dashboard():
 def dashboard():
     if "user" not in session:
         return redirect(url_for("login"))
+
+    current_user_role = str(session.get("role", "User")).strip()
+
+    privileged_roles = ["superadmin", "admin", "hr", "hr employee"]
+    is_privileged = current_user_role.lower() in privileged_roles
 
     stats = None
     transactions = []
@@ -345,6 +357,13 @@ def dashboard():
     if request.method == "POST":
         action = request.form.get("action")
 
+        # SECURITY BLOCK: Only block data manipulation actions for Normal users. Exports are now allowed!
+        if action in ["upload_excel", "push_data"] and not is_privileged:
+            flash("Access Denied: Your account role does not have permission to modify data records.", "danger")
+            log_to_database(session["user"], "UNAUTHORIZED_ACTION",
+                            f"Normal user attempted restricted action: {action}")
+            return redirect(url_for("dashboard"))
+
         if action == "clear":
             log_to_database(session["user"], "CLEAR_FILTERS", "Reset search dashboard parameters.")
             return redirect(url_for("dashboard"))
@@ -372,8 +391,11 @@ def dashboard():
             try:
                 records_added = push_data.write_to_transaction()
                 if records_added is not None and records_added > 0:
-                    log_to_database(session["user"], "PUSH_DATA", f"Pushed {records_added} manual entries to transaction_log.")
-                    flash(f"Push complete! {records_added} new unique entries were safely added to the transaction log.", "success")
+                    log_to_database(session["user"], "PUSH_DATA",
+                                    f"Pushed {records_added} manual entries to transaction_log.")
+                    flash(
+                        f"Push complete! {records_added} new unique entries were safely added to the transaction log.",
+                        "success")
                 else:
                     flash("Push complete. No new unique manual entries were found.", "success")
             except Exception as e:
@@ -409,10 +431,6 @@ def dashboard():
 
             if raw_records:
                 transactions = format_records(raw_records)
-
-                # ============================================================================
-                # CRITICAL: We pass raw_records directly into ALL summaries.
-                # ============================================================================
                 daily_summary = create_daily_summary(raw_records)
                 time_inside_data = calculate_time_inside(raw_records)
                 summary = create_overall_summary(raw_records)
@@ -421,6 +439,10 @@ def dashboard():
                 warnings = detect_missing_pairs(raw_records)
                 anomalies = top_anomalies(raw_records, top_n=30)
                 stats = statistics_data
+
+                time_dict = {(t['BadgeID'], t['Date']): t['TotalTimeInside'] for t in time_inside_data}
+                for d in daily_summary:
+                    d['TotalTime'] = time_dict.get((d['BadgeID'], d['Date']), "00:00:00")
 
                 chart_hours = [str(i).zfill(2) + ":00" for i in range(6, 24)] + ["00:00"]
                 hour_counts_in = {h: 0 for h in chart_hours}
@@ -480,10 +502,12 @@ def dashboard():
                 except Exception as e:
                     flash(f"PDF Export Failed: {str(e)}")
 
+    template_to_render = "dashboard.html" if is_privileged else "normal_dashboard.html"
+
     return render_template(
-        "dashboard.html",
+        template_to_render,
         username=session["user"],
-        user_role=session.get("role", "User"),
+        user_role=current_user_role,
         badges=badge_list,
         stats=stats,
         transactions=transactions,
@@ -503,4 +527,4 @@ def dashboard():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug= False)
+    app.run(host='0.0.0.0', port=5000, debug=False)

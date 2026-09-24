@@ -1,3 +1,5 @@
+#upload_excel -> Uploads manual entry sheet into database
+
 import pandas as pd
 import pyodbc
 from datetime import datetime

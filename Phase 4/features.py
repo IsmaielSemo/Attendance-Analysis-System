@@ -1,134 +1,86 @@
 # features.py -> Describes the features that will be used in ML
+#
+# Design decisions:
+# 1. Utilizes exact `calculate_time_inside` logic from attendance.py to model
+#    actual time worked inside the facility, ignoring off-site lunch/breaks.
+# 2. Continuous deviation instead of binary flags.
+# 3. Coefficient of Variation (CV) for consistency relative to the employee's own mean.
+# 4. Compares data against cluster peers rather than hardcoded global shift definitions.
 
 from collections import defaultdict
 from statistics import mean, stdev
 from datetime import datetime
 
-# ==========================================================
-# CONSTANTS
-# Default schedule used to compute deviation.
-# These are not hard cutoffs — employees are compared to
-# their cluster peers, not to these absolute values.
-# ==========================================================
+# Adjusted based on standard 9-hour workday + 1hr offshoot
+SHORT_DAY = 6.5 * 60  # Less than 6.5 hours inside is a short day
+LONG_DAY = 10.5 * 60  # More than 10.5 hours inside is a long day
 
-WORK_START = 9 * 60   # 09:00 in minutes
-WORK_END   = 17 * 60  # 17:00 in minutes
-SHORT_DAY  = 4 * 60   # 4 hours in minutes
-LONG_DAY   = 10 * 60  # 10 hours in minutes
+from attendance import calculate_time_inside
 
 
-# ==========================================================
-# TIME UTILITIES
-# ==========================================================
+def to_minutes(dt_obj):
+    if isinstance(dt_obj, str):
+        formats = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%m/%d/%Y %H:%M:%S"]
+        for fmt in formats:
+            try:
+                dt_obj = datetime.strptime(dt_obj, fmt)
+                break
+            except ValueError:
+                continue
+        else:
+            return 0
+    return dt_obj.hour * 60 + dt_obj.minute
 
-def to_datetime(value):
-    """
-    Converts a value to a datetime object.
-    Supports datetime objects and common string formats.
-    """
+
+def safe_div(n, d):
+    return n / d if d and d != 0 else 0.0
+
+
+def _to_datetime(value):
     if isinstance(value, datetime):
         return value
-
     if isinstance(value, str):
-        formats = [
-            "%Y-%m-%d %H:%M:%S",
-            "%Y-%m-%d %H:%M",
-            "%m/%d/%Y %H:%M:%S",
-        ]
+        formats = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%m/%d/%Y %H:%M:%S"]
         for fmt in formats:
             try:
                 return datetime.strptime(value, fmt)
             except ValueError:
                 continue
-
     return None
 
-
-def to_minutes(value):
-    """Converts a datetime to minutes after midnight."""
-    dt = to_datetime(value)
-    if dt is None:
-        return 0
-    return dt.hour * 60 + dt.minute
-
-
-def safe_div(numerator, denominator):
-    """Safe division — returns 0.0 if denominator is zero."""
-    if denominator is None or denominator == 0:
-        return 0.0
-    return numerator / denominator
-
-
-# ==========================================================
-# BUILD DAILY INFORMATION
-# One summary record per employee per day.
-# Uses FIRST IN and LAST OUT to capture overall attendance
-# behavior rather than individual punch noise.
-# ==========================================================
 
 def build_daily_information(records):
     daily_info = defaultdict(lambda: defaultdict(list))
 
-    for record in records:
-        badge = record.BadgeID
-        dt    = to_datetime(record.Datetime)
+    for r in records:
+        badge = r.BadgeID
+        dt = _to_datetime(r.Datetime)
         if dt is None:
             continue
-        daily_info[badge][dt.date()].append(record)
+        date_key = dt.date()
+        daily_info[badge][date_key].append(r)
 
     processed_info = defaultdict(list)
 
     for badge, days in daily_info.items():
         for date_key, day_records in days.items():
-            day_records.sort(key=lambda x: to_datetime(x.Datetime))
+            day_records.sort(key=lambda x: _to_datetime(x.Datetime) or datetime.min)
 
-            in_records  = [r for r in day_records if str(r.InOut).upper().strip() == "IN"]
+            in_records = [r for r in day_records if str(r.InOut).upper().strip() == "IN"]
             out_records = [r for r in day_records if str(r.InOut).upper().strip() == "OUT"]
 
-            first_in = in_records[0]   if in_records  else None
+            first_in = in_records[0] if in_records else None
             last_out = out_records[-1] if out_records else None
 
-            duration = None
-            if first_in is not None and last_out is not None:
-                first_dt = to_datetime(first_in.Datetime)
-                last_dt  = to_datetime(last_out.Datetime)
-                if first_dt is not None and last_dt is not None:
-                    duration = (last_dt - first_dt).total_seconds() / 60.0
-                    if duration < 0:
-                        duration = None  # drop invalid negative durations
-
             processed_info[badge].append({
-                "date"    : date_key,
+                "date": date_key,
                 "first_in": first_in,
                 "last_out": last_out,
-                "duration": duration,
-                "punches" : len(day_records),
+                "punches": len(day_records),
             })
 
     return processed_info
 
-
-# ==========================================================
-# FEATURE GENERATION
-# One feature vector per employee.
-#
-# Design decisions:
-# - ArrivalStd / DepartureStd instead of CV
-#   CV = std/mean only works for ratio data where 0 means nothing.
-#   Time of day is interval data — midnight is arbitrary.
-#   Dividing by avg_arrival inflates CV for night shift workers
-#   who arrive near midnight. Raw std is mathematically correct.
-#
-# - DurationCV kept (not DurationStd)
-#   Duration 0 genuinely means zero minutes worked —
-#   ratio data where CV is valid.
-#
-# - MissingPunchRatio and AvgPunchesPerDay excluded from ML matrix
-#   They dominate StandardScaler when most employees have 0
-#   missing punches and a few have many — turning the SVM into
-#   a missing-punch detector instead of a behavior detector.
-#   Both are kept in build_features for explanation purposes only.
-# ==========================================================
 
 def build_features(records, missing_pairs_alerts=None):
     if missing_pairs_alerts is None:
@@ -136,161 +88,114 @@ def build_features(records, missing_pairs_alerts=None):
 
     daily_info = build_daily_information(records)
 
-    # Count missing punches per employee
+    # Extract exact time inside logic from attendance.py
+    time_inside_data = calculate_time_inside(records)
+    time_map = {(str(t["BadgeID"]), str(t["Date"])): (t["TotalSeconds"] / 60.0) for t in time_inside_data}
+
     employee_alerts = defaultdict(lambda: {"MissingIN": 0, "MissingOUT": 0})
     for alert in missing_pairs_alerts:
-        badge   = alert.get("BadgeID")
-        problem = str(alert.get("Problem", ""))
-        if "Missing IN"  in problem:
-            employee_alerts[badge]["MissingIN"]  += 1
+        badge = str(alert.get("BadgeID"))
+        problem = alert.get("Problem", "")
+        if "Missing IN" in problem:
+            employee_alerts[badge]["MissingIN"] += 1
         elif "Missing OUT" in problem:
             employee_alerts[badge]["MissingOUT"] += 1
 
     feature_vectors = []
 
     for badge, days in daily_info.items():
-        arrivals    = []
-        departures  = []
-        durations   = []
-        punches     = []
+        arrivals = []
+        departures = []
+        durations = []
+        punches = []
         weekend_days = 0
-        short_days   = 0
-        long_days    = 0
+        short_days = 0
+        long_days = 0
+
         working_days = len(days)
+        badge_str = str(badge)
 
-        for day in days:
-            punches.append(day["punches"])
+        for d in days:
+            punches.append(d["punches"])
+            date_str = d["date"].strftime('%Y-%m-%d')
 
-            # Egypt workweek: Friday=4, Saturday=5
-            if day["date"].weekday() in (4, 5):
+            if d["date"].weekday() in (4, 5):
                 weekend_days += 1
 
-            if day["first_in"] is not None:
-                arrivals.append(to_minutes(day["first_in"].Datetime))
+            if d["first_in"]:
+                arr_min = to_minutes(d["first_in"].Datetime)
+                arrivals.append(arr_min)
 
-            if day["last_out"] is not None:
-                departures.append(to_minutes(day["last_out"].Datetime))
+            if d["last_out"]:
+                dep_min = to_minutes(d["last_out"].Datetime)
+                departures.append(dep_min)
 
-            if day["duration"] is not None:
-                durations.append(day["duration"])
-                if day["duration"] < SHORT_DAY:
+            # Map the exact calculated seconds inside the building to this shift
+            exact_duration = time_map.get((badge_str, date_str))
+            if exact_duration is not None and exact_duration > 0:
+                durations.append(exact_duration)
+                if exact_duration < SHORT_DAY:
                     short_days += 1
-                elif day["duration"] > LONG_DAY:
-                    long_days  += 1
+                elif exact_duration > LONG_DAY:
+                    long_days += 1
 
-        # Core averages
-        avg_arrival   = round(mean(arrivals),   2) if arrivals   else 0.0
+        avg_arrival = round(mean(arrivals), 2) if arrivals else 0.0
         avg_departure = round(mean(departures), 2) if departures else 0.0
-        avg_duration  = round(mean(durations),  2) if durations  else 0.0
+        avg_duration = round(mean(durations), 2) if durations else 0.0
 
-        # Raw standard deviation (mathematically correct for time of day)
-        arrival_std   = round(stdev(arrivals),   2) if len(arrivals)   > 1 else 0.0
-        departure_std = round(stdev(departures), 2) if len(departures) > 1 else 0.0
-        duration_std  = round(stdev(durations),  2) if len(durations)  > 1 else 0.0
+        arr_std = round(stdev(arrivals), 2) if len(arrivals) > 1 else 0.0
+        dep_std = round(stdev(departures), 2) if len(departures) > 1 else 0.0
+        dur_std = round(stdev(durations), 2) if len(durations) > 1 else 0.0
 
-        # DurationCV valid since duration 0 = zero minutes worked
-        duration_cv = safe_div(duration_std, avg_duration)
+        arrival_cv = safe_div(arr_std, avg_arrival)
+        departure_cv = safe_div(dep_std, avg_departure)
+        duration_cv = safe_div(dur_std, avg_duration)
 
-        # Deviation from default schedule (continuous, preserves magnitude)
-        avg_arrival_deviation   = avg_arrival   - WORK_START
-        avg_departure_deviation = avg_departure - WORK_END
+        total_missing = employee_alerts[badge_str]["MissingIN"] + employee_alerts[badge_str]["MissingOUT"]
 
-        # Reliability
-        missing_in    = employee_alerts[badge]["MissingIN"]
-        missing_out   = employee_alerts[badge]["MissingOUT"]
-        total_missing = missing_in + missing_out
+        missing_ratio = safe_div(total_missing, working_days * 2)
+        short_day_ratio = safe_div(short_days, working_days)
+        long_day_ratio = safe_div(long_days, working_days)
+        weekend_ratio = safe_div(weekend_days, working_days)
+        avg_punches_day = safe_div(sum(punches), working_days)
 
         feature_vectors.append({
-            "BadgeID"              : badge,
-            "WorkingDays"          : working_days,
-
-            # Absolute averages
-            "AverageArrival"       : avg_arrival,
-            "AverageDeparture"     : avg_departure,
-            "AverageDuration"      : avg_duration,
-
-            # Deviation from default 9-17 schedule
-            "AvgArrivalDeviation"  : avg_arrival_deviation,
-            "AvgDepartureDeviation": avg_departure_deviation,
-
-            # Consistency — raw std (not CV) for time features
-            "ArrivalStd"           : arrival_std,
-            "DepartureStd"         : departure_std,
-
-            # Consistency — CV valid for duration
-            "DurationCV"           : duration_cv,
-
-            # Shift length flags
-            "ShortDayRatio"        : safe_div(short_days,   working_days),
-            "LongDayRatio"         : safe_div(long_days,    working_days),
-
-            # Presence
-            "WeekendRatio"         : safe_div(weekend_days, working_days),
-
-            # Excluded from ML matrix — kept for explanation use only
-            "AvgPunchesPerDay"     : safe_div(sum(punches), working_days),
-            "MissingPunchRatio"    : safe_div(total_missing, working_days * 2),
-            "MissingIN"            : missing_in,
-            "MissingOUT"           : missing_out,
-            "TotalMissingPunches"  : total_missing,
-            "WeekendDays"          : weekend_days,
-            "ShortDays"            : short_days,
-            "LongDays"             : long_days,
+            "BadgeID": badge,
+            "WorkingDays": working_days,
+            "AverageArrival": avg_arrival,
+            "AverageDeparture": avg_departure,
+            "AverageDuration": avg_duration,
+            "ArrivalCV": arrival_cv,
+            "DepartureCV": departure_cv,
+            "DurationCV": duration_cv,
+            "ShortDayRatio": short_day_ratio,
+            "LongDayRatio": long_day_ratio,
+            "WeekendRatio": weekend_ratio,
+            "AvgPunchesPerDay": avg_punches_day,
+            "MissingPunchRatio": missing_ratio,
         })
 
     return feature_vectors
 
 
-# ==========================================================
-# FEATURE MATRIX (from raw records)
-# Kept for backward compatibility.
-# Internally calls build_features then feature_matrix_from_features.
-# ==========================================================
-
 def feature_matrix(records, missing_pairs_alerts=None):
     features = build_features(records, missing_pairs_alerts)
-    return feature_matrix_from_features(features)
 
-
-# ==========================================================
-# FEATURE MATRIX FROM PRE-BUILT FEATURES
-# Use this in detect_anomalies to avoid calling build_features
-# twice (which caused the quality gate to be bypassed).
-#
-# The bug: detect_anomalies called build_features() once to
-# get features for the quality gate, then called feature_matrix()
-# which internally called build_features() again — producing a
-# fresh unfiltered list that was used for X. The quality gate
-# filtered features but not X, causing employees like 3209
-# (only IN records, no valid duration) to slip through.
-# ==========================================================
-
-def feature_matrix_from_features(features):
-    """
-    Builds the sklearn-compatible numerical matrix directly
-    from an already-computed feature list.
-
-    Excluded from matrix (data quality signals, not behavior):
-    - MissingPunchRatio
-    - AvgPunchesPerDay
-    """
     ids = []
-    X   = []
+    X = []
 
-    for employee in features:
-        ids.append(employee["BadgeID"])
+    for emp in features:
+        ids.append(emp["BadgeID"])
         X.append([
-            employee["AverageArrival"],
-            employee["AverageDeparture"],
-            employee["AverageDuration"],
-            employee["AvgArrivalDeviation"],
-            employee["AvgDepartureDeviation"],
-            employee["ArrivalStd"],       # raw std, not CV
-            employee["DepartureStd"],     # raw std, not CV
-            employee["DurationCV"],       # CV valid for duration
-            employee["ShortDayRatio"],
-            employee["LongDayRatio"],
-            employee["WeekendRatio"],
+            emp["AverageArrival"],
+            emp["AverageDeparture"],
+            emp["AverageDuration"],
+            emp["ArrivalCV"],
+            emp["DepartureCV"],
+            emp["DurationCV"],
+            emp["ShortDayRatio"],
+            emp["LongDayRatio"],
+            emp["WeekendRatio"],
         ])
 
     return ids, X
