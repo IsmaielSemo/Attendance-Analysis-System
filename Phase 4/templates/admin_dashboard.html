@@ -31,8 +31,9 @@
             color: #dc3545;
             margin-top: 4px;
         }
-        .badge-superadmin { background-color: #6f42c1; color: white; } /* Purple for SuperAdmin */
-        .badge-admin { background-color: #212529; color: white; } /* Dark for Admin */
+        .badge-superadmin { background-color: #6f42c1; color: white; } /* Purple */
+        .badge-admin { background-color: #212529; color: white; } /* Dark */
+        .badge-hr { background-color: #0dcaf0; color: #000; } /* Cyan/Info */
     </style>
 </head>
 <body>
@@ -95,8 +96,9 @@
                     <div class="mb-4">
                         <label class="form-label small fw-bold">Account Role</label>
                         <select name="new_role" class="form-select" required>
-                            <option value="User" selected>Standard User</option>
-                            <!-- Only a SuperAdmin can create regular Admins. SuperAdmin option removed entirely to enforce single-SuperAdmin rule. -->
+                            <!-- UPDATED TO REFLECT NEW ROLES -->
+                            <option value="Normal" selected>Normal User</option>
+                            <option value="HR">HR Employee</option>
                             {% if session['role'] in ['Admin', 'SuperAdmin'] %}
                                 <option value="Admin">Administrator</option>
                             {% endif %}
@@ -117,7 +119,8 @@
                         <option value="id_asc" {% if current_sort == 'id_asc' %}selected{% endif %}>Sort: ID (Ascending)</option>
                         <option value="id_desc" {% if current_sort == 'id_desc' %}selected{% endif %}>Sort: ID (Descending)</option>
                         <option value="role_admin" {% if current_sort == 'role_admin' %}selected{% endif %}>Sort: Admins First</option>
-                        <option value="role_user" {% if current_sort == 'role_user' %}selected{% endif %}>Sort: Users First</option>
+                        <option value="role_hr" {% if current_sort == 'role_hr' %}selected{% endif %}>Sort: HR First</option>
+                        <option value="role_user" {% if current_sort == 'role_user' %}selected{% endif %}>Sort: Normal Users First</option>
                     </select>
                 </div>
                 <hr class="mt-0">
@@ -138,9 +141,11 @@
                                 <td>{{ user[0] }}</td>
                                 <td class="fw-bold">{{ user[1] }}</td>
                                 <td>
+                                    <!-- UPDATED BADGE COLORS -->
                                     <span class="badge
                                         {% if user[2] == 'SuperAdmin' %} badge-superadmin
                                         {% elif user[2] == 'Admin' %} badge-admin
+                                        {% elif user[2] == 'HR' %} badge-hr
                                         {% else %} bg-secondary {% endif %}">
                                         {{ user[2] }}
                                     </span>
@@ -152,8 +157,8 @@
                                         <input type="hidden" name="action" value="delete_user"/>
                                         <input type="hidden" name="target_user_id" value="{{ user[0] }}"/>
 
-                                        <!-- Disable if it's their own account, or if a standard Admin is looking at a SuperAdmin row -->
-                                        {% set is_disabled = (user[0] == session['user_id']) or (session['role'] != 'SuperAdmin' and user[2] == 'SuperAdmin') %}
+                                        <!-- Disable if it's their own account, or if a standard Admin is looking at a SuperAdmin OR Admin row -->
+                                        {% set is_disabled = (user[0] == session['user_id']) or (session['role'] != 'SuperAdmin' and user[2] in ['SuperAdmin', 'Admin']) %}
 
                                         <button type="submit" class="btn btn-sm btn-outline-danger py-0 rounded-0" {{ 'disabled' if is_disabled else '' }}>Delete</button>
                                     </form>
