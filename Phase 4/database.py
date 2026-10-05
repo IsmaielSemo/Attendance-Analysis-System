@@ -51,6 +51,21 @@ def get_auth_connection():
     cursor.execute("SELECT DB_NAME()")
     return conn
 
+def clean_badge_id(value):
+    if value is None:
+        return None
+
+    badge = str(value).strip()
+
+    if badge.endswith(".0"):
+        badge = badge[:-2]
+
+    badge = re.sub(r"[^\w]", "", badge)
+
+    if badge.lower() in {"", "nan", "none", "null", "nat"}:
+        return None
+
+    return badge
 
 def get_attendance(badge_id, start_date, end_date):
     end_date_plus_one = end_date + timedelta(days=1)
@@ -80,15 +95,12 @@ def get_attendance(badge_id, start_date, end_date):
     seen = set()
 
     for row in raw_data:
-        b_id_raw = str(row[0]).strip() if row[0] is not None else ''
-        if b_id_raw.endswith('.0'):
-            b_id_raw = b_id_raw[:-2]
-        b_id = re.sub(r'[^\w]', '', b_id_raw)
+        b_id = clean_badge_id(row[0])
 
         ip = re.sub(r'[^\d\.]', '', str(row[1]).strip()) if row[1] is not None else ''
         dt_val = row[2]
 
-        if not b_id or dt_val is None:
+        if b_id is None or dt_val is None:
             continue
 
         if badge_id is not None and b_id != str(badge_id):
@@ -117,17 +129,65 @@ def get_attendance(badge_id, start_date, end_date):
     return records
 
 
+# def get_unique_badges():
+#     with get_connection() as conn:
+#         cursor = conn.cursor()
+#         query = """
+#             SELECT DISTINCT UserID AS BadgeID FROM dbo.HikAccessLog WHERE NULLIF(LTRIM(RTRIM(UserID)), '') IS NOT NULL
+#             UNION
+#             SELECT DISTINCT code AS BadgeID FROM dbo.ZK_log WHERE NULLIF(LTRIM(RTRIM(code)), '') IS NOT NULL
+#             UNION
+#             SELECT DISTINCT code AS BadgeID FROM dbo.ManualEntry WHERE NULLIF(LTRIM(RTRIM(code)), '') IS NOT NULL
+#         """
+#         cursor.execute(query)
+#         rows = cursor.fetchall()
+#         badges = sorted(list(set(str(row[0]).strip() for row in rows)))
+#         return badges
+
+
 def get_unique_badges():
-    with get_connection() as conn:
+    """
+    Retrieve all unique, valid badge IDs from the attendance tables.
+    Removes duplicates and filters out null-like values such as
+    'nan', 'None', and empty strings.
+    """
+    query = """
+        SELECT CAST(UserID AS VARCHAR(50)) AS BadgeID
+        FROM HikAccessLog
+
+        UNION
+
+        SELECT CAST(code AS VARCHAR(50)) AS BadgeID
+        FROM ZK_log
+
+        UNION
+
+        SELECT CAST(code AS VARCHAR(50)) AS BadgeID
+        FROM ManualEntry
+    """
+
+    try:
+        conn = pyodbc.connect(ATTENDANCE_CONNECTION_STRING)
         cursor = conn.cursor()
-        query = """
-            SELECT DISTINCT UserID AS BadgeID FROM dbo.HikAccessLog WHERE NULLIF(LTRIM(RTRIM(UserID)), '') IS NOT NULL
-            UNION
-            SELECT DISTINCT code AS BadgeID FROM dbo.ZK_log WHERE NULLIF(LTRIM(RTRIM(code)), '') IS NOT NULL
-            UNION
-            SELECT DISTINCT code AS BadgeID FROM dbo.ManualEntry WHERE NULLIF(LTRIM(RTRIM(code)), '') IS NOT NULL
-        """
         cursor.execute(query)
         rows = cursor.fetchall()
-        badges = sorted(list(set(str(row[0]).strip() for row in rows)))
-        return badges
+
+        cleaned_badges = set()
+
+        for row in rows:
+            b_id = clean_badge_id(row[0])
+
+            if b_id is not None:
+                cleaned_badges.add(b_id)
+
+        return sorted(cleaned_badges)
+
+    except pyodbc.Error as e:
+        print(f"Database error while retrieving unique badges: {e}")
+        return []
+
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()

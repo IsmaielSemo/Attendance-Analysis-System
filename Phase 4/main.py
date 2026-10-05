@@ -22,7 +22,7 @@ from excel_export import export_excel
 from pdf_export import export_pdf
 import database as db
 import upload_excel
-import push_data
+import push_data_hr, push_data_admin
 
 app = Flask(__name__)
 
@@ -330,6 +330,9 @@ def dashboard():
     privileged_roles = ["superadmin", "admin", "hr", "hr employee"]
     is_privileged = current_user_role.lower() in privileged_roles
 
+    push_privileged_roles = ["superadmin", "admin"]
+    is_push_privileged = current_user_role.lower() in push_privileged_roles
+
     stats = None
     transactions = []
     daily_summary = []
@@ -351,14 +354,21 @@ def dashboard():
 
     try:
         badge_list = db.get_unique_badges()
-    except Exception:
+    except Exception as e:
+        print(f"Error loading badges for dropdown: {e}")
         badge_list = []
 
     if request.method == "POST":
         action = request.form.get("action")
 
         # SECURITY BLOCK: Only block data manipulation actions for Normal users. Exports are now allowed!
-        if action in ["upload_excel", "push_data"] and not is_privileged:
+        if action in ["upload_excel", "push_data_hr"] and not is_privileged:
+            flash("Access Denied: Your account role does not have permission to modify data records.", "danger")
+            log_to_database(session["user"], "UNAUTHORIZED_ACTION",
+                            f"Normal user attempted restricted action: {action}")
+            return redirect(url_for("dashboard"))
+
+        if action in ["push_data_admin"] and not is_push_privileged:
             flash("Access Denied: Your account role does not have permission to modify data records.", "danger")
             log_to_database(session["user"], "UNAUTHORIZED_ACTION",
                             f"Normal user attempted restricted action: {action}")
@@ -387,9 +397,9 @@ def dashboard():
                 flash("No file selected.", "danger")
             return redirect(url_for("dashboard"))
 
-        elif action == "push_data":
+        elif action == "push_data_hr":
             try:
-                records_added = push_data.write_to_transaction()
+                records_added = push_data_hr.write_to_transaction()
                 if records_added is not None and records_added > 0:
                     log_to_database(session["user"], "PUSH_DATA",
                                     f"Pushed {records_added} manual entries to transaction_log.")
@@ -398,6 +408,21 @@ def dashboard():
                         "success")
                 else:
                     flash("Push complete. No new unique manual entries were found.", "success")
+            except Exception as e:
+                flash(f"Push Data Failed: {str(e)}", "danger")
+            return redirect(url_for("dashboard"))
+
+        elif action == "push_data_admin":
+            try:
+                records_added = push_data_admin.write_to_transaction()
+                if records_added is not None and records_added > 0:
+                    log_to_database(session["user"], "PUSH_DATA",
+                                    f"Pushed {records_added} new data entries to transaction_log.")
+                    flash(
+                        f"Push complete! {records_added} new unique entries were safely added to the transaction log.",
+                        "success")
+                else:
+                    flash("Push complete. No new unique Manual, ZK, or HIK entries were found.", "success")
             except Exception as e:
                 flash(f"Push Data Failed: {str(e)}", "danger")
             return redirect(url_for("dashboard"))
@@ -413,7 +438,11 @@ def dashboard():
             flash("Please select both a Start Date and an End Date.")
             return redirect(url_for("dashboard"))
 
-        badge_id = None if selected_badge == "All" or selected_badge == "" else int(selected_badge)
+        badge_id = (
+            None
+            if selected_badge in ("All", "")
+            else str(selected_badge).strip()
+        )
 
         try:
             start_date = datetime.strptime(start_date_str, "%m/%d/%Y").date()
@@ -502,7 +531,12 @@ def dashboard():
                 except Exception as e:
                     flash(f"PDF Export Failed: {str(e)}")
 
-    template_to_render = "dashboard.html" if is_privileged else "normal_dashboard.html"
+    if is_push_privileged:
+        template_to_render = "dashboard.html"
+    elif is_privileged:
+        template_to_render = "hr_dashboard.html"
+    else:
+        template_to_render = "normal_dashboard.html"
 
     return render_template(
         template_to_render,
@@ -527,4 +561,4 @@ def dashboard():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=True)

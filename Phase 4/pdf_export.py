@@ -83,10 +83,16 @@ class AttendancePDF(FPDF):
 
 
 # ==========================================================
-# HELPER: DRAW TABLE
+# HELPER: DRAW TABLE WITH ANTI-BLEED CLIPPING
 # ==========================================================
 def draw_table(pdf, title, headers, data, col_widths, align='C'):
     pdf.add_page()
+
+    # Creates PDF navigation "tabs" (bookmarks) in the sidebar
+    try:
+        pdf.bookmark(title)
+    except AttributeError:
+        pass
 
     pdf.set_font('helvetica', 'B', 14)
     pdf.set_text_color(51, 51, 51)
@@ -125,10 +131,23 @@ def draw_table(pdf, title, headers, data, col_widths, align='C'):
 
         for i, item in enumerate(row):
             val = clean_text(item)
-            cell_align = 'L' if (align == 'MIXED' and i == len(row) - 1) else 'C'
-            pdf.cell(col_widths[i], 8, val, border=1, align=cell_align, fill=True)
-        pdf.ln()
+            cell_width = col_widths[i]
 
+            # --- CRITICAL FIX: DYNAMIC TEXT CLIPPING ---
+            # Measures the exact mm width of the string. If it exceeds the cell width,
+            # it trims characters until it fits with a "..." appended.
+            if pdf.get_string_width(val) > (cell_width - 2):
+                if cell_width < 8:
+                    val = ""  # Cell is too small for even an ellipsis
+                else:
+                    while len(val) > 0 and pdf.get_string_width(val + "...") > (cell_width - 2):
+                        val = val[:-1]
+                    val += "..."
+
+            cell_align = 'L' if (align == 'MIXED' and i == len(row) - 1) else 'C'
+            pdf.cell(cell_width, 8, val, border=1, align=cell_align, fill=True)
+
+        pdf.ln()
         fill = not fill
 
 
@@ -162,6 +181,11 @@ def export_pdf(transactions, daily, overall, statistics, alerts, ml_data=[], cha
         plt.close()
 
         pdf.add_page()
+        try:
+            pdf.bookmark("Activity Trends")
+        except AttributeError:
+            pass
+
         pdf.set_font('helvetica', 'B', 14)
         pdf.set_text_color(51, 51, 51)
         pdf.cell(0, 10, "Activity Trends Visualization", ln=True)
@@ -223,20 +247,18 @@ def export_pdf(transactions, daily, overall, statistics, alerts, ml_data=[], cha
         stats_data, [138, 138]
     )
 
-    # 6. AI ANOMALIES (Now placed last)
+    # 6. AI ANOMALIES (Reconfigured column widths to stop bleed)
     if ml_data:
         ml_table_data = []
         for r in ml_data:
-            reasons = r["Reasons"]
-            if len(reasons) > 150:
-                reasons = reasons[:82] + "..."
             ml_table_data.append([
-                r["BadgeID"], r["Prediction"], r["Risk"], str(r["Score"]), reasons
+                r["BadgeID"], r["Prediction"], r["Risk"], str(r["Score"]), r["Reasons"]
             ])
+
         draw_table(
             pdf, "Attendance Insights",
-            ["Badge ID", "Prediction", "Risk", "Score", "Reasons (Truncated)"],
-            ml_table_data, [25, 30, 25, 25, 171], align='MIXED'
+            ["Badge ID", "Prediction", "Priority / Risk", "Score", "Observations"],
+            ml_table_data, [20, 35, 65, 15, 141], align='MIXED'
         )
 
     reports_folder = "reports"
