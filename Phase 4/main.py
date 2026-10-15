@@ -384,10 +384,15 @@ def dashboard():
                 temp_path = os.path.join(app.root_path, uploaded_file.filename)
                 uploaded_file.save(temp_path)
                 try:
-                    upload_excel.excel_to_db(temp_path)
+                    # Capture the returned count
+                    records_added = upload_excel.excel_to_db(temp_path)
+
                     log_to_database(session["user"], "UPLOAD_EXCEL",
-                                    f"Uploaded manual entry file: {uploaded_file.filename}")
-                    flash(f"Successfully uploaded {uploaded_file.filename}!", "success")
+                                    f"Uploaded manual entry file: {uploaded_file.filename} with {records_added} entries")
+
+                    # Display the dynamic flash message
+                    flash(f"Upload complete! {records_added} new entries were added from {uploaded_file.filename}.",
+                          "success")
                 except Exception as e:
                     flash(f"Upload failed: {str(e)}", "danger")
                 finally:
