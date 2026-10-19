@@ -217,8 +217,8 @@
 
                     <!-- UPLOAD/PUSH FOR ADMINS -->
                     <input type="file" name="excel_file" id="excelFileInput" class="d-none" accept=".csv, .xls, .xlsx">
-                    <button type="button" class="btn btn-sm btn-outline-success" onclick="document.getElementById('excelFileInput').click();">Upload Excel</button>
-                    <button type="submit" name="action" value="push_data_admin" class="btn btn-sm btn-primary text-white shadow-sm">Push Data</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" style="box-shadow: none" onclick="document.getElementById('excelFileInput').click();">Upload Excel</button>
+                    <button type="submit" name="action" value="push_data_admin" class="btn btn-sm btn-primary text-white shadow-sm" onclick="showLoadingPopup()">Push Data</button>
                     <button type="submit" name="action" value="upload_excel" id="submitUploadExcel" class="d-none"></button>
 
                     <div class="vr mx-1"></div>
@@ -473,18 +473,44 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>document.addEventListener("DOMContentLoaded", function () { flatpickr(".custom-calendar", { dateFormat: "m/d/Y" }); });</script>
 
+    <!-- Loading Popup Modal -->
+<div class="modal fade" id="loadingModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content text-center p-4 border-0 shadow">
+            <div class="spinner-border text-primary mx-auto mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+            <h6 class="mb-0 fw-bold">Pushing Data...</h6>
+            <p class="small text-muted mt-2 mb-0">This may take a few moments. Please do not close or refresh the page.</p>
+        </div>
+    </div>
+</div>
+
     <script>
         document.getElementById('excelFileInput').addEventListener('change', function() {
             if (this.files.length > 0) {
-                const fileExt = this.files[0].name.split('.').pop().toLowerCase();
-                if (['xlsx', 'xls', 'csv'].includes(fileExt)) {
-                    document.getElementById('submitUploadExcel').click();
-                } else {
+                const filename = this.files[0].name;
+                const fileExt = this.files[0].name.split('.').pop().toLowerCase(); //File name
+                const uploadConfirm = confirm(`Are you sure you want to upload "${filename}" ?`);
+                if (uploadConfirm == true) {
+                    if (['xlsx', 'xls', 'csv'].includes(fileExt)) {
+                        document.getElementById('submitUploadExcel').click();
+                    }
+                    else {
                     alert('Invalid file type! Please upload a .xlsx, .xls, or .csv file.');
                     this.value = '';
+                    }
                 }
+                else
+                    this.value = '';
             }
         });
+    </script>
+
+    <script>
+    function showLoadingPopup() {
+        // Initialize and show the Bootstrap modal
+        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        loadingModal.show();
+    }
     </script>
 </body>
 </html>
