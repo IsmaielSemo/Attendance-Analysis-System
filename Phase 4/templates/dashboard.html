@@ -186,7 +186,7 @@
         <!-- SEARCH CONTROL FRAME -->
         <div class="modern-card p-3">
             <div class="text-uppercase small fw-bold text-muted mb-2">Search Filters</div>
-           <form method="POST" action="{{ url_for('dashboard') }}" class="row g-2 align-items-center" enctype="multipart/form-data">
+            <form method="POST" action="{{ url_for('dashboard') }}" class="row g-2 align-items-center" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                 <div class="col-auto">
@@ -290,22 +290,23 @@
                     <div class="tab-pane fade show active h-100" id="transactions">
                         <table class="modern-table">
                             <thead>
-                                <tr><th>BadgeID</th><th>Datetime</th><th>Status</th><th>Branch</th></tr>
+                                <tr><th>BadgeID</th><th>Datetime</th><th>Status</th><th>Branch</th><th>Entry Method</th></tr>
                             </thead>
                             <tbody>
                                 {% if transactions %}
                                     {% for r in transactions %}
-                                    <tr class="{% if r.Status == 'IN' %}bg-low{% else %}bg-very-high{% endif %}">
+                                    <tr class="{% if r.InOut == 'IN' %}bg-low{% else %}bg-very-high{% endif %}">
                                         <td class="fw-medium">{{ r.BadgeID }}</td>
                                         <td>{{ r.Datetime }}</td>
                                         <td>
-                                            <span class="badge {% if r.Status == 'IN' %}bg-success{% else %}bg-danger{% endif %}">{{ r.Status }}</span>
+                                            <span class="badge {% if r.InOut == 'IN' %}bg-success{% else %}bg-danger{% endif %}">{{ r.InOut }}</span>
                                         </td>
                                         <td>{{ r.Branch }}</td>
+                                        <td><span class="badge bg-light text-dark border">{{ r.VerifyMode|default('N/A') }}</span></td>
                                     </tr>
                                     {% endfor %}
                                 {% else %}
-                                    <tr><td colspan="4" class="text-center text-muted py-5">No transaction records loaded. Run a search query.</td></tr>
+                                    <tr><td colspan="5" class="text-center text-muted py-5">No transaction records loaded. Run a search query.</td></tr>
                                 {% endif %}
                             </tbody>
                         </table>
@@ -315,7 +316,7 @@
                     <div class="tab-pane fade h-100" id="daily">
                         <table class="modern-table">
                             <thead>
-                                <tr><th>BadgeID</th><th>Date</th><th>First IN</th><th>Last OUT</th><th>Total Time Inside</th><th>Punches</th></tr>
+                                <tr><th>BadgeID</th><th>Date</th><th>First IN</th><th>IN Method</th><th>Last OUT</th><th>OUT Method</th><th>Total Time Inside</th><th>Punches</th></tr>
                             </thead>
                             <tbody>
                                 {% if daily_summary %}
@@ -324,13 +325,15 @@
                                         <td class="fw-medium">{{ d.BadgeID }}</td>
                                         <td>{{ d.Date }}</td>
                                         <td>{{ d.FirstIn }}</td>
+                                        <td><span class="text-muted small">{{ d.FirstInMethod|default('N/A') }}</span></td>
                                         <td>{{ d.LastOut }}</td>
+                                        <td><span class="text-muted small">{{ d.LastOutMethod|default('N/A') }}</span></td>
                                         <td class="fw-bold text-primary">{{ d.TotalTime }}</td>
                                         <td>{{ d.Punches }}</td>
                                     </tr>
                                     {% endfor %}
                                 {% else %}
-                                    <tr><td colspan="6" class="text-center text-muted py-5">No daily summary records found.</td></tr>
+                                    <tr><td colspan="8" class="text-center text-muted py-5">No daily summary records found.</td></tr>
                                 {% endif %}
                             </tbody>
                         </table>
