@@ -6,39 +6,7 @@ from datetime import datetime, timedelta
 from collections import namedtuple
 from config import ATTENDANCE_CONNECTION_STRING, AUTH_CONNECTION_STRING
 
-Record = namedtuple('Record', ['BadgeID', 'Datetime', 'InOut', 'Branch'])
-
-# FULL MASTER LIST OF ALL 36 GATES
-IP_MAPPING = {
-    '10.1.100.1': ('IN', 'Plaza - Gate1-IN'),
-    '10.1.100.2': ('OUT', 'Plaza - Gate1-OUT'),
-    '10.1.100.3': ('IN', 'Plaza - Gate2-IN'),
-    '10.1.100.4': ('OUT', 'Plaza - Gate2-OUT'),
-    '10.1.100.5': ('IN', 'Plaza - Gate3-IN'),
-    '10.1.100.6': ('OUT', 'Plaza - Gate3-OUT'),
-    '10.1.100.7': ('IN', 'Plaza - Gate-DM-IN'),
-    '10.1.100.8': ('OUT', 'Plaza - Gate-DM-OUT'),
-    '10.1.100.9': ('IN', 'Plaza - Gate-GT-IN'),
-    '10.1.100.10': ('OUT', 'Plaza - Gate-GT-OUT'),
-    '10.10.10.201': ('IN', 'HQ IN Gate'),
-    '10.10.10.203': ('OUT', 'HQ Out Gate'),
-    '10.10.10.202': ('IN', 'HQ-Sec IN Gate'),
-    '10.10.10.204': ('OUT', 'HQ-Sec Out Gate'),
-    '10.100.1.199': ('IN', 'CS IN Gate'),
-    '10.100.1.200': ('OUT', 'CS Out Gate'),
-    '10.4.10.202': ('IN', 'DT IN Gate'),
-    '10.4.10.201': ('OUT', 'DT Out Gate'),
-    '10.13.1.100': ('IN', 'Pearl IN Gate'),
-    '10.13.1.200': ('OUT', 'Pearl Out Gate'),
-    '10.11.10.201': ('IN', 'CH IN Gate'),
-    '10.11.10.202': ('OUT', 'CH Out Gate'),
-    '10.12.10.201': ('IN', 'FH In Gate'),
-    '10.12.10.202': ('OUT', 'FH Out Gate'),
-    '10.8.10.201': ('IN', 'CH-Sales IN Gate'),
-    '10.8.10.202': ('OUT', 'CH-Sales Out Gate'),
-    '10.3.10.201': ('IN', 'HC IN Gate'),
-    '10.3.10.202': ('OUT', 'HC Out Gate')
-}
+Record = namedtuple('Record', ['BadgeID', 'Datetime', 'InOut', 'Branch', 'VerifyMode'])
 
 
 def get_connection():
@@ -50,6 +18,63 @@ def get_auth_connection():
     cursor = conn.cursor()
     cursor.execute("SELECT DB_NAME()")
     return conn
+
+
+def get_dynamic_ip_mapping():
+    """
+    Dynamically queries dbo.Machine to build the IP mapping dictionary.
+    Handles all 11 columns: ID, IP, port, Name, modelid, ModelName, Direction, Location, Active, Username, Password.
+    """
+    mapping = {}
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT 
+                [IP], 
+                [Name], 
+                [Direction], 
+                [port], 
+                [modelid], 
+                [ModelName], 
+                [Location], 
+                [Active], 
+                [Username], 
+                [Password]
+            FROM dbo.Machine
+        """)
+        rows = cursor.fetchall()
+
+        for row in rows:
+            ip_val = re.sub(r'[^\d\.]', '', str(row[0])).strip() if row[0] is not None else ''
+            branch_name = str(row[1]).strip() if row[1] is not None else ''
+            direction_flag = str(row[2]).strip() if row[2] is not None else ''
+
+            username = str(row[8]).strip() if len(row) > 8 and row[8] is not None else ''
+            password = str(row[9]).strip() if len(row) > 9 and row[9] is not None else ''
+
+            if direction_flag == '1':
+                in_out = 'IN'
+            elif direction_flag == '2':
+                in_out = 'OUT'
+            else:
+                in_out = 'UNKNOWN'
+
+            if ip_val:
+                mapping[ip_val] = {
+                    'in_out': in_out,
+                    'branch': branch_name,
+                    'username': username,
+                    'password': password
+                }
+
+        conn.close()
+    except Exception as e:
+        print(f"Error loading dynamic IP mapping from dbo.Machine: {e}")
+
+    return mapping
+
 
 def clean_badge_id(value):
     if value is None:
@@ -67,6 +92,8 @@ def clean_badge_id(value):
 
     return badge
 
+
+
 def get_attendance(badge_id, start_date, end_date):
     end_date_plus_one = end_date + timedelta(days=1)
     params = [start_date, end_date_plus_one]
@@ -74,96 +101,144 @@ def get_attendance(badge_id, start_date, end_date):
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Querying the database for hardware logs
-    hik_query = "SELECT UserID, DeviceIP, [EventTime] FROM dbo.HikAccessLog WHERE [EventTime] >= ? AND [EventTime] < ?"
-    zk_query = "SELECT code, Ip, Datetime FROM dbo.ZK_log WHERE Datetime >= ? AND Datetime < ?"
-    manual_query = "SELECT code, Ip, Datetime FROM dbo.ManualEntry WHERE Datetime >= ? AND Datetime < ?"
+    ip_mapping = get_dynamic_ip_mapping()
+
+    hik_query = """
+        SELECT UserID, DeviceIP, [EventTime], [Minor]
+        FROM dbo.HikAccessLog
+        WHERE [EventTime] >= ? AND [EventTime] < ?
+    """
+
+    zk_query = """
+        SELECT code, Ip, Datetime
+        FROM dbo.ZK_log
+        WHERE Datetime >= ? AND Datetime < ?
+    """
+
+    manual_query = """
+        SELECT code, Ip, Datetime
+        FROM dbo.ManualEntry
+        WHERE Datetime >= ? AND Datetime < ?
+    """
 
     raw_data = []
-    cursor.execute(hik_query, params)
-    raw_data.extend(cursor.fetchall())
 
-    cursor.execute(zk_query, params)
-    raw_data.extend(cursor.fetchall())
+    try:
+        cursor.execute(hik_query, params)
+        raw_data.extend([('HIK', row) for row in cursor.fetchall()])
 
-    cursor.execute(manual_query, params)
-    raw_data.extend(cursor.fetchall())
+        cursor.execute(zk_query, params)
+        raw_data.extend([('ZK', row) for row in cursor.fetchall()])
 
-    conn.close()
+        cursor.execute(manual_query, params)
+        raw_data.extend([('MANUAL', row) for row in cursor.fetchall()])
+
+    finally:
+        cursor.close()
+        conn.close()
 
     records = []
     seen = set()
 
-    for row in raw_data:
+    for source_type, row in raw_data:
+
         b_id = clean_badge_id(row[0])
 
-        ip = re.sub(r'[^\d\.]', '', str(row[1]).strip()) if row[1] is not None else ''
+        ip = (
+            re.sub(r'[^\d\.]', '', str(row[1]).strip())
+            if row[1] is not None else ''
+        )
+
         dt_val = row[2]
+
+        # Default verification method
+        verify_mode = 'N/A'
+
+        # Determine verification method only for Hikvision
+        if source_type == 'HIK':
+
+            minor_val = row[3]
+
+            try:
+                minor_int = int(minor_val) if minor_val is not None else None
+            except (ValueError, TypeError):
+                minor_int = None
+
+            if minor_int == 1:
+                verify_mode = 'Card'
+
+            elif minor_int == 38:
+                verify_mode = 'Fingerprint'
+
+            elif minor_int == 75:
+                verify_mode = 'Face'
+
+            # Unknown codes remain N/A.
+            # NEVER discard a valid attendance punch.
 
         if b_id is None or dt_val is None:
             continue
 
-        if badge_id is not None and b_id != str(badge_id):
-            continue
+        if badge_id is not None and str(badge_id) != 'All':
+            if b_id != str(badge_id):
+                continue
 
-        # FAST NATIVE PYTHON PARSING
         if isinstance(dt_val, str):
             try:
-                dt = datetime.strptime(dt_val[:19], "%Y-%m-%d %H:%M:%S")
+                dt = datetime.strptime(
+                    dt_val[:19],
+                    "%Y-%m-%d %H:%M:%S"
+                )
             except ValueError:
                 continue
+
         elif isinstance(dt_val, datetime):
             dt = dt_val
+
         else:
             continue
 
-        # Assign IN/OUT based on the Master IP list
-        in_out, branch = IP_MAPPING.get(ip, ('UNKNOWN', 'UNKNOWN'))
+        device_info = ip_mapping.get(
+            ip,
+            {
+                'in_out': 'UNKNOWN',
+                'branch': 'UNKNOWN'
+            }
+        )
 
-        ident = (b_id, dt, in_out)
-        if ident not in seen:
-            seen.add(ident)
-            records.append(Record(BadgeID=b_id, Datetime=dt, InOut=in_out, Branch=branch))
+        in_out = device_info['in_out']
+        branch = device_info['branch']
+
+        # Include verification method in the identity.
+        ident = (source_type, b_id, dt, in_out, verify_mode)
+
+        if ident in seen:
+            continue
+
+        seen.add(ident)
+
+        records.append(
+            Record(
+                BadgeID=b_id,
+                Datetime=dt,
+                InOut=in_out,
+                Branch=branch,
+                VerifyMode=verify_mode
+            )
+        )
 
     records.sort(key=lambda x: (x.BadgeID, x.Datetime))
+
     return records
 
 
-# def get_unique_badges():
-#     with get_connection() as conn:
-#         cursor = conn.cursor()
-#         query = """
-#             SELECT DISTINCT UserID AS BadgeID FROM dbo.HikAccessLog WHERE NULLIF(LTRIM(RTRIM(UserID)), '') IS NOT NULL
-#             UNION
-#             SELECT DISTINCT code AS BadgeID FROM dbo.ZK_log WHERE NULLIF(LTRIM(RTRIM(code)), '') IS NOT NULL
-#             UNION
-#             SELECT DISTINCT code AS BadgeID FROM dbo.ManualEntry WHERE NULLIF(LTRIM(RTRIM(code)), '') IS NOT NULL
-#         """
-#         cursor.execute(query)
-#         rows = cursor.fetchall()
-#         badges = sorted(list(set(str(row[0]).strip() for row in rows)))
-#         return badges
-
-
 def get_unique_badges():
-    """
-    Retrieve all unique, valid badge IDs from the attendance tables.
-    Removes duplicates and filters out null-like values such as
-    'nan', 'None', and empty strings.
-    """
     query = """
-        SELECT CAST(UserID AS VARCHAR(50)) AS BadgeID
-        FROM HikAccessLog
-
+        SELECT CAST(UserID AS VARCHAR(50)) AS BadgeID FROM HikAccessLog
         UNION
-
-        SELECT CAST(code AS VARCHAR(50)) AS BadgeID
-        FROM ZK_log
-
+        SELECT CAST(code AS VARCHAR(50)) AS BadgeID FROM ZK_log
         UNION
-
-        SELECT CAST(code AS VARCHAR(50)) AS BadgeID
-        FROM ManualEntry
+        SELECT CAST(code AS VARCHAR(50)) AS BadgeID FROM ManualEntry
     """
 
     try:
@@ -173,10 +248,8 @@ def get_unique_badges():
         rows = cursor.fetchall()
 
         cleaned_badges = set()
-
         for row in rows:
             b_id = clean_badge_id(row[0])
-
             if b_id is not None:
                 cleaned_badges.add(b_id)
 

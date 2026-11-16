@@ -14,39 +14,38 @@ def safe_time_sort(dt_val):
     return dt_val if isinstance(dt_val, datetime) else datetime.min
 
 
-def clean_records(records):
-    grouped = defaultdict(list)
-    for record in records:
-        day_str = safe_date_str(record.Datetime)
-        if day_str:
-            key = (record.BadgeID, day_str)
-            grouped[key].append(record)
 
+def clean_records(records):
+    """
+    Removes exact duplicate transactions only.
+    Does not remove punches based on time intervals or IN/OUT status.
+    """
+
+    seen = set()
     cleaned = []
-    for key in grouped:
-        day_records = sorted(grouped[key], key=lambda x: safe_time_sort(x.Datetime))
-        if not day_records:
+
+    for record in records:
+
+        ident = (
+            record.BadgeID,
+            record.Datetime,
+            record.InOut,
+            record.Branch,
+            getattr(record, 'VerifyMode', 'N/A')
+        )
+
+        if ident in seen:
             continue
 
-        cleaned.append(day_records[0])
-        previous_record = day_records[0]
+        seen.add(ident)
+        cleaned.append(record)
 
-        for current_record in day_records[1:]:
-            status = str(current_record.InOut).strip().upper()
-            prev_status = str(previous_record.InOut).strip().upper()
+    cleaned.sort(
+        key=lambda x: (x.BadgeID, safe_time_sort(x.Datetime))
+    )
 
-            if status != prev_status:
-                cleaned.append(current_record)
-                previous_record = current_record
-            else:
-                # INSTANT NATIVE MATH (No Pandas)
-                diff = (current_record.Datetime - previous_record.Datetime).total_seconds()
-                if diff > 300:
-                    cleaned.append(current_record)
-                    previous_record = current_record
-
-    cleaned.sort(key=lambda x: (x.BadgeID, safe_time_sort(x.Datetime)))
     return cleaned
+
 
 
 def group_records(records):
@@ -73,16 +72,25 @@ def get_last_out(records):
     return max(out_punches, key=lambda x: safe_time_sort(x.Datetime))
 
 
-def format_records(records):
-    output = []
-    for record in records:
-        output.append({
-            "BadgeID": record.BadgeID,
-            "Datetime": record.Datetime,
-            "Status": str(record.InOut).strip(),
-            "Branch": str(record.Branch).strip() if record.Branch else ""
+def format_records(raw_records):
+    """
+    Formats raw database records into a clean list of dictionaries for the template.
+    """
+    formatted = []
+    for r in raw_records:
+        # Check if VerifyMode is present on the record namedtuple/object
+        verify_mode = getattr(r, 'VerifyMode', 'N/A')
+        if not verify_mode or verify_mode.strip() == '':
+            verify_mode = 'N/A'
+
+        formatted.append({
+            'BadgeID': r.BadgeID,
+            'Datetime': r.Datetime.strftime("%Y-%m-%d %H:%M:%S") if hasattr(r.Datetime, 'strftime') else str(r.Datetime),
+            'InOut': r.InOut,
+            'Branch': r.Branch,
+            'VerifyMode': verify_mode
         })
-    return output
+    return formatted
 
 
 def calculate_time_inside(records):
@@ -126,37 +134,75 @@ def calculate_time_inside(records):
     return time_summary
 
 
-def create_daily_summary(records):
-    raw_grouped = group_records(records)
-    cleaned = clean_records(records)
-    clean_grouped = group_records(cleaned)
 
-    # 1. Pull the time inside data mapping using your robust function
-    time_inside_data = calculate_time_inside(records)
+def create_daily_summary(raw_records):
+    """
+    Creates daily summaries with first IN, last OUT,
+    their verification methods, and total punch count.
+    """
 
-    # 2. Convert it to a fast dictionary lookup mapping (Badge, Date) -> HH:MM:SS
-    time_map = {(item['BadgeID'], item['Date']): item['TotalTimeInside'] for item in time_inside_data}
+    daily_data = {}
 
-    summary = []
-    for (badge, day) in sorted(raw_grouped.keys()):
-        raw_day_records = raw_grouped[(badge, day)]
-        first_in = get_first_in(raw_day_records)
-        last_out = get_last_out(raw_day_records)
-        clean_day_records = clean_grouped.get((badge, day), [])
+    for r in raw_records:
 
-        # 3. Safely pull the calculated time, defaulting to 0 if they missed a punch
-        total_time = time_map.get((badge, day), "00:00:00")
+        badge_id = r.BadgeID
+        dt = r.Datetime
+        in_out = str(r.InOut).upper().strip()
 
-        summary.append({
-            "BadgeID": badge,
-            "Date": day,
-            "FirstIn": first_in.Datetime if first_in else None,
-            "LastOut": last_out.Datetime if last_out else None,
-            "TotalTime": total_time,
-            "Punches": len(clean_day_records)
-        })
+        verify_mode = getattr(r, 'VerifyMode', 'N/A')
 
-    return summary
+        if not verify_mode:
+            verify_mode = 'N/A'
+
+        day_str = (
+            dt.strftime("%Y-%m-%d")
+            if hasattr(dt, 'strftime')
+            else str(dt).split()[0]
+        )
+
+        time_str = (
+            dt.strftime("%H:%M:%S")
+            if hasattr(dt, 'strftime')
+            else str(dt)
+        )
+
+        key = (badge_id, day_str)
+
+        if key not in daily_data:
+
+            daily_data[key] = {
+                'BadgeID': badge_id,
+                'Date': day_str,
+                'FirstIn': '-',
+                'FirstInMethod': 'N/A',
+                'LastOut': '-',
+                'LastOutMethod': 'N/A',
+                'Punches': 0
+            }
+
+        daily_data[key]['Punches'] += 1
+
+        if in_out == 'IN':
+
+            if (
+                daily_data[key]['FirstIn'] == '-'
+                or time_str < daily_data[key]['FirstIn']
+            ):
+
+                daily_data[key]['FirstIn'] = time_str
+                daily_data[key]['FirstInMethod'] = verify_mode
+
+        elif in_out == 'OUT':
+
+            if (
+                daily_data[key]['LastOut'] == '-'
+                or time_str > daily_data[key]['LastOut']
+            ):
+
+                daily_data[key]['LastOut'] = time_str
+                daily_data[key]['LastOutMethod'] = verify_mode
+
+    return list(daily_data.values())
 
 
 def create_overall_summary(records):
